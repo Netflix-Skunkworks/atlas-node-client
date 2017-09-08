@@ -1,40 +1,21 @@
 #!/bin/bash
 
-OS=$(uname -s)
-if [ "$OS" = "Linux" ]; then
-  # see if package already installed
-  V=$(dpkg -l libatlasclient | awk '/^ii/{print $3}')
-  case $V in
-    2.2.* )
-      # assume the rest of the dependencies have been installed
-      echo libatlasclient already installed: $V
-      ;;
-    * )
-      # same package name, but the xenial ami doesn't ship g++
-      ubuntu=$(lsb_release -c -s)
-      if [ ! -r /etc/apt/sources.list.d/nflx-$ubuntu.list ]; then
-        echo "deb     [arch=amd64] http://repo.test.netflix.net:7001/artifactory/debian-local $ubuntu main" | sudo tee /etc/apt/sources.list.d/nflx-$ubuntu.list
-      fi
-      sudo apt-get update
-      sudo apt-get install -y --allow-unauthenticated libatlasclient g++ 
-      ;;
-  esac
-  mkdir -p build/Release
-  rm -f build/Release/libatlasclient.dylib
-  cp /usr/local/lib/libatlasclient.so build/Release/
-elif [ "$OS" = "Darwin" ]; then
-  brew tap | grep -q homebrew/nflx || brew tap homebrew/nflx https://stash.corp.netflix.com/scm/brew/nflx.git
-  if brew ls --versions nflx-atlas-client | grep -q "2\.2" ; then
-    echo nflx-atlas-client already installed: $(brew ls --versions nflx-atlas-client)
-  else
-    brew update
-    if brew ls --versions nflx-atlas-client >/dev/null 2>/dev/null; then
-      brew upgrade nflx-atlas-client || true
-    else
-      brew install nflx-atlas-client
-    fi
-  fi
-  mkdir -p build/Release
-  rm -f build/Release/libatlasclient.dylib
-  cp /usr/local/lib/libatlasclient.dylib build/Release/
+if [ -d nc/root/usr/local/include/atlas/atlas_client.h ]; then
+  echo Already installed
+  exit 0
 fi
+
+NATIVE_CLIENT_VERSION=${1:-v2.2.0}
+rm -rf nc
+mkdir nc
+cd nc
+git init 
+git remote add origin https://github.com/Netflix-Skunkworks/atlas-native-client.git
+git fetch origin $NATIVE_CLIENT_VERSION
+git reset --hard FETCH_HEAD
+mkdir build root
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+make
+make install DESTDIR=../root
+cp ../root/lib/libatlas* ../../build/Release
