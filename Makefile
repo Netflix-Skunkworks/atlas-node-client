@@ -116,9 +116,8 @@ package: clean-release node_modules test lint codestyle
 
 .PHONY: publish
 publish: package
-	@curl --fail -H "X-JFrog-Art-Api:AKCp2WXCUb9AhGSoNXY4pnYJhfsJXG5T1KD2ebeLsiWQomi93w4URnDKMfBjtTb3iQsgnAMRn" -X PUT -T $(STAGE) $(PUBLISH_URL)
-	@echo
-	@echo Published $(PUBLISH_URL)
+	# TODO
+	@echo Not implemented
 
 .PHONY: test
 test: node_modules $(ALL_FILES)
@@ -143,7 +142,7 @@ clean-coverage:
 
 .PHONY: clean
 clean: clean-coverage
-	@rm -rf $(NODE_MODULES)
+	@rm -rf $(NODE_MODULES) nc
 
 
 #
