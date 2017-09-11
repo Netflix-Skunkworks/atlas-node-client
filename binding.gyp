@@ -31,7 +31,7 @@
       'action_name': 'install_libatlasclient',
       'inputs': [''],
       'outputs': [''],
-      'action': ['sh', 'scripts/install-lib.sh']
+      'action': ['node', 'scripts/install-lib.js']
     }]
   },
   ]

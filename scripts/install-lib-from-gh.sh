@@ -1,11 +1,17 @@
 #!/bin/bash
 
+set -e
+
 if [ -d nc/root/usr/local/include/atlas/atlas_client.h ]; then
   echo Already installed
   exit 0
 fi
 
-NATIVE_CLIENT_VERSION=${1:-v2.2.0}
+if [ $# = 0 ] ; then
+  echo "Usage: $0 <version>" >&2
+  exit 1
+fi
+
 rm -rf nc
 mkdir nc
 cd nc
