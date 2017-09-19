@@ -24,7 +24,7 @@ bool tagsFromObject(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
                        "' when specifying tags";
         Nan::ThrowError(err_msg.c_str());
       }
-      (*tags)[k] = v;
+      tags->add(k.c_str(), v.c_str());
     }
     return true;
   } else {
