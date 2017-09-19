@@ -94,13 +94,13 @@ static void create_memory_meters() {
 static void create_gc_timers() {
   auto base_id = node_id("nodejs.gc.pause");
   gc_timers[v8::kGCTypeScavenge] =
-      atlas_registry.timer(base_id->WithTag(Tag{"id", "scavenge"}));
+      atlas_registry.timer(base_id->WithTag(Tag::of("id", "scavenge")));
   gc_timers[v8::kGCTypeMarkSweepCompact] =
-      atlas_registry.timer(base_id->WithTag(Tag{"id", "markSweepCompact"}));
+      atlas_registry.timer(base_id->WithTag(Tag::of("id", "markSweepCompact")));
   gc_timers[v8::kGCTypeIncrementalMarking] =
-      atlas_registry.timer(base_id->WithTag(Tag{"id", "incrementalMarking"}));
+      atlas_registry.timer(base_id->WithTag(Tag::of("id", "incrementalMarking")));
   gc_timers[v8::kGCTypeProcessWeakCallbacks] =
-      atlas_registry.timer(base_id->WithTag(Tag{"id", "processWeakCallbacks"}));
+      atlas_registry.timer(base_id->WithTag(Tag::of("id", "processWeakCallbacks")));
 }
 
 static std::shared_ptr<Timer> get_gc_timer(GCType type) {
@@ -112,7 +112,7 @@ static std::shared_ptr<Timer> get_gc_timer(GCType type) {
 
   // Unknown GC type - should never happen with node 6.x or 7.x
   return atlas_registry.timer(
-      node_id("nodejs.gc.pause")->WithTag(Tag{"id", std::to_string(int_type)}));
+      node_id("nodejs.gc.pause")->WithTag(Tag::of("id", std::to_string(int_type))));
 }
 
 inline size_t number_heap_spaces() {

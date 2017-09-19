@@ -26,8 +26,8 @@ NAN_METHOD(measurements) {
     auto tags = Nan::New<Object>();
     const auto& t = m.tags;
     for (const auto& kv : t) {
-      tags->Set(Nan::New(kv.first.c_str()).ToLocalChecked(),
-                Nan::New(kv.second.c_str()).ToLocalChecked());
+      tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
+                Nan::New(kv.second.get()).ToLocalChecked());
     }
     measurement->Set(Nan::New("tags").ToLocalChecked(), tags);
     measurement->Set(Nan::New("value").ToLocalChecked(), Nan::New(m.value));
@@ -68,8 +68,8 @@ NAN_METHOD(config) {
   ret->Set(Nan::New("publishConfig").ToLocalChecked(), pubCfg);
   auto commonTags = Nan::New<Object>();
   for (const auto& kv : currentCfg.CommonTags()) {
-    commonTags->Set(Nan::New(kv.first.c_str()).ToLocalChecked(),
-                    Nan::New(kv.second.c_str()).ToLocalChecked());
+    commonTags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
+                    Nan::New(kv.second.get()).ToLocalChecked());
   }
   ret->Set(Nan::New("commonTags").ToLocalChecked(), commonTags);
   ret->Set(Nan::New("loggingDirectory").ToLocalChecked(),
