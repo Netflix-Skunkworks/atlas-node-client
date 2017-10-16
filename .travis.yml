@@ -6,3 +6,6 @@ node_js:
 os:
   - "osx"
   - "linux"
+
+osx_image: xcode9.1
+
