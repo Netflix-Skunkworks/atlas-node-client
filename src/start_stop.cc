@@ -121,7 +121,10 @@ inline size_t number_heap_spaces() {
 }
 
 inline HeapSpaceStatistics* alloc_heap_stats() {
-  return new HeapSpaceStatistics[number_heap_spaces()];
+  auto n = number_heap_spaces();
+  auto stats = new HeapSpaceStatistics[n];
+  memset(stats, 0, sizeof(HeapSpaceStatistics) * n);
+  return stats;
 }
 
 inline void free_heap_stats(HeapSpaceStatistics* stats) { delete[] stats; }
@@ -131,7 +134,7 @@ static bool fill_heap_stats(HeapSpaceStatistics* stats) {
   auto n = number_heap_spaces();
   auto isolate = v8::Isolate::GetCurrent();
   for (size_t i = 0; i < n; ++i) {
-    if (!isolate->GetHeapSpaceStatistics(stats + i, i)) {
+    if (!isolate->GetHeapSpaceStatistics(&stats[i], i)) {
       ok = false;
     }
   }
@@ -169,9 +172,10 @@ static NAN_GC_CALLBACK(afterGC) {
   bool live_data_updated = false;
 
   if (old_space_idx >= 0) {
-    auto old_before = beforeStats[old_space_idx].space_used_size();
-    auto old_after = stats[old_space_idx].space_used_size();
-    auto delta = old_after - old_before;
+    size_t old_before = beforeStats[old_space_idx].space_used_size();
+    size_t old_after = stats[old_space_idx].space_used_size();
+    int64_t delta = static_cast<int64_t>(old_after) - old_before;
+
     if (delta > 0) {
       promotion_rate_counter->Add(delta);
     }
