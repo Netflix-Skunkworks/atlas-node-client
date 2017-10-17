@@ -1,3 +1,22 @@
+## 1.17.0 (2017-10-17)
+
+#### Update
+
+* libatlasclient (v3.4.0): control enabling/disabling of metrics using a file
+  (used by the traffic team internally), plus some hardening efforts.
+ 
+#### Fix
+
+* `nodejs.gc.promotionRate` was sometimes negative.
+
+#### Chore
+
+* Travis setup
+ 
+## 1.16.2 (2017-09-19)
+
+* libatlasclient (v3.1.0): memory management improvements and better handling of large number of metrics
+ 
 ## 1.14.0 (2017-09-05)
 
 #### Fix
