@@ -7,7 +7,7 @@ const assert = chai.assert;
 describe('metrics', () => {
   it('should measure event loop tick', (done) => {
     var ms = 50;
-    var threshold = 1e6; // value is within 1ms
+    var threshold = 10e6; // value is within 10ms
     var fakeSelf = {
       eventLoopTime: {
         record: (time) => {
