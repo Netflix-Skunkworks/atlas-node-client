@@ -3,6 +3,7 @@
 set -e
 if [ -r nc/root/include/atlas/atlas_client.h ]; then
   echo Already installed
+  cp nc/root/lib/libatlas* build/Release
   exit 0
 fi
 
