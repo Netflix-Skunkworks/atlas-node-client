@@ -1,8 +1,7 @@
 #!/bin/bash
 
 set -e
-
-if [ -d nc/root/usr/local/include/atlas/atlas_client.h ]; then
+if [ -r nc/root/include/atlas/atlas_client.h ]; then
   echo Already installed
   exit 0
 fi
@@ -22,6 +21,6 @@ git reset --hard FETCH_HEAD
 mkdir build root
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-make
+make -j2
 make install DESTDIR=../root
 cp ../root/lib/libatlas* ../../build/Release
