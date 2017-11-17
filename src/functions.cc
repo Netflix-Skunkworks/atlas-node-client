@@ -17,20 +17,21 @@ using v8::Object;
 
 NAN_METHOD(measurements) {
   const auto& config = GetConfig();
-  const auto& measurements = atlas_registry.GetMainMeasurements(config);
+  auto common_tags = config.CommonTags();
+  const auto& measurements = atlas_registry.GetMainMeasurements(config, common_tags);
 
   auto ret = Nan::New<v8::Array>();
 
-  for (const auto& m : measurements) {
+  for (const auto& m : *measurements) {
     auto measurement = Nan::New<Object>();
     auto tags = Nan::New<Object>();
-    const auto& t = m.tags;
+    const auto& t = m->all_tags();
     for (const auto& kv : t) {
       tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
                 Nan::New(kv.second.get()).ToLocalChecked());
     }
     measurement->Set(Nan::New("tags").ToLocalChecked(), tags);
-    measurement->Set(Nan::New("value").ToLocalChecked(), Nan::New(m.value));
+    measurement->Set(Nan::New("value").ToLocalChecked(), Nan::New(m->value()));
     ret->Set(ret->Length(), measurement);
   }
 
