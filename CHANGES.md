@@ -1,3 +1,15 @@
+## 1.18.2 (2017-11-22)
+
+#### Update
+
+* libatlasclient (v3.6.2): option to disable validation, plus other improvements.
+ 
+## 1.18.0 (2017-11-20)
+
+#### Update
+
+* libatlasclient (v3.6.1): faster tags implementation, and improvements to memory usage.
+ 
 ## 1.17.0 (2017-10-17)
 
 #### Update
