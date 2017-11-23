@@ -25,3 +25,5 @@ cmake -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_
 make -j2
 make install DESTDIR=../root
 cp ../root/lib/libatlas* ../../build/Release
+# remove unused static artifacts (created on linux)
+rm -f ../../build/Release/*.a
