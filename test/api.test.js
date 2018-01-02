@@ -179,7 +179,7 @@ describe('atlas extension', () => {
     bt.record(1, 200000);
     assert.equal(t.count(), 2);
     bt.record(0, 212 * 1000);
-    let t2 = atlas.counter('example.bucket.t', {
+    let t2 = atlas.timer('example.bucket.t', {
       bucket: '0375ms'
     });
     assert.equal(t2.count(), 1);

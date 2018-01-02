@@ -11,6 +11,7 @@ if [ $# = 0 ] ; then
   echo "Usage: $0 <version>" >&2
   exit 1
 fi
+NATIVE_CLIENT_VERSION=$1
 
 rm -rf nc
 mkdir nc
@@ -22,8 +23,7 @@ git reset --hard FETCH_HEAD
 mkdir build root
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-make -j2
+make -j8 
 make install DESTDIR=../root
+rm -f ../root/lib/libatlas*a
 cp ../root/lib/libatlas* ../../build/Release
-# remove unused static artifacts (created on linux)
-rm -f ../../build/Release/*.a
