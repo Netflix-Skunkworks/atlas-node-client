@@ -16,7 +16,7 @@ using v8::Maybe;
 using v8::Object;
 
 NAN_METHOD(measurements) {
-  const auto& config = GetConfig();
+  auto config = atlas::GetConfig();
   auto common_tags = config.CommonTags();
   const auto& measurements = atlas_registry.GetMainMeasurements(config, common_tags);
 
@@ -39,26 +39,29 @@ NAN_METHOD(measurements) {
 }
 
 NAN_METHOD(config) {
-  auto currentCfg = GetConfig();
+  auto currentCfg = atlas::GetConfig();
+  const auto& endpoints = currentCfg.EndpointConfiguration();
+  const auto& log = currentCfg.LogConfiguration();
+  const auto& http = currentCfg.HttpConfiguration();
   auto ret = Nan::New<Object>();
   ret->Set(Nan::New("evaluateUrl").ToLocalChecked(),
-           Nan::New(currentCfg.EvalEndpoint().c_str()).ToLocalChecked());
+           Nan::New(endpoints.evaluate.c_str()).ToLocalChecked());
   ret->Set(Nan::New("subscriptionsUrl").ToLocalChecked(),
-           Nan::New(currentCfg.SubsEndpoint().c_str()).ToLocalChecked());
+           Nan::New(endpoints.subscriptions.c_str()).ToLocalChecked());
   ret->Set(Nan::New("publishUrl").ToLocalChecked(),
-           Nan::New(currentCfg.PublishEndpoint().c_str()).ToLocalChecked());
+           Nan::New(endpoints.publish.c_str()).ToLocalChecked());
   ret->Set(Nan::New("subscriptionsRefreshMillis").ToLocalChecked(),
            Nan::New(static_cast<double>(currentCfg.SubRefreshMillis())));
   ret->Set(Nan::New("batchSize").ToLocalChecked(),
-           Nan::New(currentCfg.BatchSize()));
+           Nan::New(http.batch_size));
   ret->Set(Nan::New("connectTimeout").ToLocalChecked(),
-           Nan::New(currentCfg.ConnectTimeout()));
+           Nan::New(http.connect_timeout));
   ret->Set(Nan::New("readTimeout").ToLocalChecked(),
-           Nan::New(currentCfg.ReadTimeout()));
+           Nan::New(http.read_timeout));
   ret->Set(Nan::New("dumpMetrics").ToLocalChecked(),
-           Nan::New(currentCfg.ShouldDumpMetrics()));
+           Nan::New(log.dump_metrics));
   ret->Set(Nan::New("dumpSubscriptions").ToLocalChecked(),
-           Nan::New(currentCfg.ShouldDumpSubs()));
+           Nan::New(log.dump_subscriptions));
   ret->Set(Nan::New("publishEnabled").ToLocalChecked(),
            Nan::New(currentCfg.IsMainEnabled()));
 
