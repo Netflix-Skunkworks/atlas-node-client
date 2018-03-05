@@ -68,6 +68,7 @@ ifeq ($(SYSTEM), Darwin)
 	@echo Current path: ${CUR_PATH}
 	install_name_tool -change ${CUR_PATH} @loader_path/libatlasclient.dylib build/Release/atlas.node
 endif
+	rm -rf build/Release/obj.target build/Release/.deps
 
 node_modules: package.json build/Release
 	@$(NPM) install

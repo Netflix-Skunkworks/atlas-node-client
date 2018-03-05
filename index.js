@@ -117,6 +117,8 @@ let scope = function(commonTags) {
     getDebugInfo: debugInfo,
     counter: (name, tags) => atlas.counter(
       name, Object.assign({}, commonTags, tags)),
+    dcounter: (name, tags) => atlas.dcounter(
+      name, Object.assign({}, commonTags, tags)),
     intervalCounter: (name, tags) => atlas.intervalCounter(
       name, Object.assign({}, commonTags, tags)),
     timer: (name, tags) => atlas.timer(
