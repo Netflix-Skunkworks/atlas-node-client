@@ -19,6 +19,9 @@ NAN_MODULE_INIT(InitAll) {
   Set(target, New("counter").ToLocalChecked(),
       GetFunction(New<FunctionTemplate>(counter)).ToLocalChecked());
 
+  Set(target, New("dcounter").ToLocalChecked(),
+      GetFunction(New<FunctionTemplate>(dcounter)).ToLocalChecked());
+
   Set(target, New("intervalCounter").ToLocalChecked(),
       GetFunction(New<FunctionTemplate>(interval_counter)).ToLocalChecked());
 
@@ -63,6 +66,7 @@ NAN_MODULE_INIT(InitAll) {
       GetFunction(New<FunctionTemplate>(push)).ToLocalChecked());
 
   JsCounter::Init(target);
+  JsDCounter::Init(target);
   JsIntervalCounter::Init(target);
   JsTimer::Init(target);
   JsLongTaskTimer::Init(target);

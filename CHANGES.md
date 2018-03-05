@@ -1,3 +1,29 @@
+## 1.20.0 (2018-03-05)
+
+#### New
+
+* libatlasclient (v3.7.2) exposes dcounter. A counter that takes floating point increments
+
+## 1.19.2 (2013-03-02)
+
+#### Fix
+
+* Removes unneeded artifacts from binary blob
+ 
+## 1.19.1 (2018-03-01)
+
+#### Update
+
+* libatlasclient (v3.7.1): fixes locking bugs around logging, and fixes some threading issues.
+
+## 1.19.0 (2018-02-28)
+
+#### Update
+* libatlasclient (v3.7.0): new config api
+
+#### Fix
+* Remove unneeded artifacts from build/Release directory to trim size of the module
+
 ## 1.18.2 (2017-11-22)
 
 #### Update

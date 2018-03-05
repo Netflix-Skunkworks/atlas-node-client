@@ -159,6 +159,10 @@ NAN_METHOD(counter) {
   CreateConstructor(info, JsCounter::constructor, "counter");
 }
 
+NAN_METHOD(dcounter) {
+  CreateConstructor(info, JsDCounter::constructor, "dcounter");
+}
+
 NAN_METHOD(interval_counter) {
   CreateConstructor(info, JsIntervalCounter::constructor, "intervalCounter");
 }
@@ -202,6 +206,7 @@ NAN_METHOD(long_task_timer) {
 NAN_METHOD(gauge) { CreateConstructor(info, JsGauge::constructor, "gauge"); }
 
 Nan::Persistent<Function> JsCounter::constructor;
+Nan::Persistent<Function> JsDCounter::constructor;
 Nan::Persistent<Function> JsIntervalCounter::constructor;
 Nan::Persistent<Function> JsTimer::constructor;
 Nan::Persistent<Function> JsLongTaskTimer::constructor;
@@ -260,6 +265,53 @@ NAN_METHOD(JsCounter::Count) {
 }
 
 JsCounter::JsCounter(IdPtr id) : counter_{atlas_registry.counter(id)} {}
+
+NAN_MODULE_INIT(JsDCounter::Init) {
+  // Prepare constructor template
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("JsDCounter").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  // Prototype
+  Nan::SetPrototypeMethod(tpl, "count", Count);
+  Nan::SetPrototypeMethod(tpl, "add", Add);
+  Nan::SetPrototypeMethod(tpl, "increment", Increment);
+
+  constructor.Reset(tpl->GetFunction());
+  Nan::Set(target, Nan::New("JsDCounter").ToLocalChecked(), tpl->GetFunction());
+}
+
+NAN_METHOD(JsDCounter::New) {
+  if (info.IsConstructCall()) {
+    // Invoked as constructor: `new JsDCounter(...)`
+    JsDCounter* obj = new JsDCounter(idFromValue(info, info.Length()));
+    obj->Wrap(info.This());
+    info.GetReturnValue().Set(info.This());
+  } else {
+    Nan::ThrowError("not implemented");
+  }
+}
+
+NAN_METHOD(JsDCounter::Increment) {
+  double value = info[0]->IsUndefined() ? 1.0 : info[0]->NumberValue();
+  JsDCounter* ctr = Nan::ObjectWrap::Unwrap<JsDCounter>(info.This());
+  ctr->counter_->Add(value);
+}
+
+NAN_METHOD(JsDCounter::Add) {
+  double value = info[0]->IsUndefined() ? 0.0 : info[0]->NumberValue();
+
+  JsDCounter* ctr = Nan::ObjectWrap::Unwrap<JsDCounter>(info.This());
+  ctr->counter_->Add(value);
+}
+
+NAN_METHOD(JsDCounter::Count) {
+  JsDCounter* ctr = Nan::ObjectWrap::Unwrap<JsDCounter>(info.This());
+  double count = ctr->counter_->Count();
+  info.GetReturnValue().Set(count);
+}
+
+JsDCounter::JsDCounter(IdPtr id) : counter_{atlas_registry.dcounter(id)} {}
 
 NAN_MODULE_INIT(JsIntervalCounter::Init) {
   // Prepare constructor template

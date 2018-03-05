@@ -25,6 +25,9 @@ NAN_METHOD(push);
 // get a counter
 NAN_METHOD(counter);
 
+// get a double counter
+NAN_METHOD(dcounter);
+
 // get an interval counter
 NAN_METHOD(interval_counter);
 
@@ -75,6 +78,22 @@ class JsCounter : public Nan::ObjectWrap {
   std::shared_ptr<atlas::meter::Counter> counter_;
 };
 
+class JsDCounter : public Nan::ObjectWrap {
+ public:
+  static NAN_MODULE_INIT(Init);
+  static Nan::Persistent<v8::Function> constructor;
+
+ private:
+  explicit JsDCounter(atlas::meter::IdPtr id);
+
+  static NAN_METHOD(New);
+  static NAN_METHOD(Increment);
+  static NAN_METHOD(Add);
+  static NAN_METHOD(Count);
+
+  std::shared_ptr<atlas::meter::DCounter> counter_;
+};
+  
 // wrapper for a timer
 class JsTimer : public Nan::ObjectWrap {
  public:

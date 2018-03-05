@@ -25,6 +25,28 @@ describe('atlas extension', () => {
     counter.increment(2);
     assert.equal(counter.count(), 2);
   });
+  
+  it('should provide double counters', () => {
+    let counter = atlas.dcounter('fooDouble');
+    assert.equal(counter.increment(), undefined);
+    assert.equal(counter.count(), 1);
+    assert.equal(counter.add(.42), undefined);
+    assert.equal(counter.count(), 1.42);
+  });
+
+  it('should handle fractional increments', () => {
+    let ic = atlas.counter('int_counter');
+    let dc = atlas.dcounter('double_counter');
+    let counters = [ ic, dc ];
+    for (let counter of counters) {
+      counter.increment(0.3);
+      counter.increment(0.3);
+      counter.increment(0.3);
+      counter.increment(0.3);
+    }
+    assert.equal(ic.count(), 0);
+    assert.equal(dc.count(), 1.2);
+  });
 
   const NANOS = 1000 * 1000 * 1000;
   it('should provide timers', () => {
