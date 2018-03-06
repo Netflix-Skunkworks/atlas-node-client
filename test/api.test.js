@@ -30,7 +30,7 @@ describe('atlas extension', () => {
     let counter = atlas.dcounter('fooDouble');
     assert.equal(counter.increment(), undefined);
     assert.equal(counter.count(), 1);
-    assert.equal(counter.add(.42), undefined);
+    assert.equal(counter.add(0.42), undefined);
     assert.equal(counter.count(), 1.42);
   });
 
