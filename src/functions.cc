@@ -15,10 +15,18 @@ using v8::Local;
 using v8::Maybe;
 using v8::Object;
 
+NAN_METHOD(set_dev_mode) {
+  if (info.Length() == 1 && info[0]->IsBoolean()) {
+    auto b = info[0]->BooleanValue();
+    dev_mode = b;
+  }
+}
+
 NAN_METHOD(measurements) {
   auto config = atlas::GetConfig();
   auto common_tags = config.CommonTags();
-  const auto& measurements = atlas_registry.GetMainMeasurements(config, common_tags);
+  const auto& measurements =
+      atlas_registry.GetMainMeasurements(config, common_tags);
 
   auto ret = Nan::New<v8::Array>();
 
@@ -52,8 +60,7 @@ NAN_METHOD(config) {
            Nan::New(endpoints.publish.c_str()).ToLocalChecked());
   ret->Set(Nan::New("subscriptionsRefreshMillis").ToLocalChecked(),
            Nan::New(static_cast<double>(currentCfg.SubRefreshMillis())));
-  ret->Set(Nan::New("batchSize").ToLocalChecked(),
-           Nan::New(http.batch_size));
+  ret->Set(Nan::New("batchSize").ToLocalChecked(), Nan::New(http.batch_size));
   ret->Set(Nan::New("connectTimeout").ToLocalChecked(),
            Nan::New(http.connect_timeout));
   ret->Set(Nan::New("readTimeout").ToLocalChecked(),

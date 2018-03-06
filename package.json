@@ -1,6 +1,6 @@
 {
   "name": "atlasclient",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "native_version": "v3.7.2",
   "main": "index.js",
   "homepage": "https://stash.corp.netflix.com/projects/CLDMTA/repos/atlas-node-client",

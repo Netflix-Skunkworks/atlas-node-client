@@ -8,3 +8,5 @@ bool tagsFromObject(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
 
 atlas::meter::IdPtr idFromValue(
     const Nan::FunctionCallbackInfo<v8::Value>& info, int argc);
+
+extern bool dev_mode;

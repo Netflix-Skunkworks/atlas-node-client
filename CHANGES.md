@@ -1,3 +1,10 @@
+## 1.21.0 (2018-03-06)
+
+#### New
+
+* `atlas.setDevMode(true)` will enable metrics validation at creation time,
+  throwing errors in case of issues.
+
 ## 1.20.0 (2018-03-05)
 
 #### New
