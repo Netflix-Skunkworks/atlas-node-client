@@ -25,7 +25,7 @@ describe('atlas extension', () => {
     counter.increment(2);
     assert.equal(counter.count(), 2);
   });
-  
+
   it('should provide double counters', () => {
     let counter = atlas.dcounter('fooDouble');
     assert.equal(counter.increment(), undefined);
@@ -38,6 +38,7 @@ describe('atlas extension', () => {
     let ic = atlas.counter('int_counter');
     let dc = atlas.dcounter('double_counter');
     let counters = [ ic, dc ];
+
     for (let counter of counters) {
       counter.increment(0.3);
       counter.increment(0.3);
