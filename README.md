@@ -62,6 +62,17 @@ See the [test] directory for examples of unit testing.  These tests can be run w
 
 [test]: https://stash.corp.netflix.com/projects/CLDMTA/repos/atlas-node-client/browse/test
 
+## Development Mode
+
+When developing it's sometimes useful to throw errors when constructing invalid
+metrics. By default the client will ignore these errors so it doesn't affect a
+running application in production, but you can change this behavior by enabling
+the development mode:
+
+`atlas.setDevMode(true);`
+
+This will validate metrics can be successfully sent to atlas, and throw in case of errors.
+
 ## Debugging
 
 * Configuration for the atlas-native-client, the dependency of the atlas-node-client that is responsible

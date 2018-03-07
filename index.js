@@ -58,10 +58,17 @@ function startAtlas(config) {
     runtimeMetrics = cfg.runtimeMetrics;
   }
 
+  let developmentMode = false;
+
+  if ('developmentMode' in cfg) {
+    developmentMode = cfg.developmentMode;
+  }
+
   const nodeVersion = {
     'nodejs.version': process.version
   };
   atlas.start({
+    developmentMode: developmentMode,
     logDirs: logDirs,
     runtimeMetrics: runtimeMetrics,
     runtimeTags: nodeVersion
@@ -96,6 +103,10 @@ function debugInfo() {
   };
 }
 
+function devMode(enabled) {
+  atlas.setDevMode(enabled);
+}
+
 let scope = function(commonTags) {
   let bucketArgs = function(name) {
     let tags, bucketFunction;
@@ -114,6 +125,7 @@ let scope = function(commonTags) {
   let s = {
     start: startAtlas,
     stop: stopAtlas,
+    setDevMode: devMode,
     getDebugInfo: debugInfo,
     counter: (name, tags) => atlas.counter(
       name, Object.assign({}, commonTags, tags)),

@@ -97,10 +97,10 @@ static void create_gc_timers() {
       atlas_registry.timer(base_id->WithTag(Tag::of("id", "scavenge")));
   gc_timers[v8::kGCTypeMarkSweepCompact] =
       atlas_registry.timer(base_id->WithTag(Tag::of("id", "markSweepCompact")));
-  gc_timers[v8::kGCTypeIncrementalMarking] =
-      atlas_registry.timer(base_id->WithTag(Tag::of("id", "incrementalMarking")));
-  gc_timers[v8::kGCTypeProcessWeakCallbacks] =
-      atlas_registry.timer(base_id->WithTag(Tag::of("id", "processWeakCallbacks")));
+  gc_timers[v8::kGCTypeIncrementalMarking] = atlas_registry.timer(
+      base_id->WithTag(Tag::of("id", "incrementalMarking")));
+  gc_timers[v8::kGCTypeProcessWeakCallbacks] = atlas_registry.timer(
+      base_id->WithTag(Tag::of("id", "processWeakCallbacks")));
 }
 
 static std::shared_ptr<Timer> get_gc_timer(GCType type) {
@@ -112,7 +112,8 @@ static std::shared_ptr<Timer> get_gc_timer(GCType type) {
 
   // Unknown GC type - should never happen with node 6.x or 7.x
   return atlas_registry.timer(
-      node_id("nodejs.gc.pause")->WithTag(Tag::of("id", std::to_string(int_type))));
+      node_id("nodejs.gc.pause")
+          ->WithTag(Tag::of("id", std::to_string(int_type))));
 }
 
 inline size_t number_heap_spaces() {
@@ -216,6 +217,7 @@ NAN_METHOD(start) {
     const auto& logDirsKey = Nan::New("logDirs").ToLocalChecked();
     const auto& runtimeMetricsKey = Nan::New("runtimeMetrics").ToLocalChecked();
     const auto& runtimeTagsKey = Nan::New("runtimeTags").ToLocalChecked();
+    const auto& devModeKey = Nan::New("developmentMode").ToLocalChecked();
 
     auto maybeLogDirs = options->Get(context, logDirsKey);
     if (!maybeLogDirs.IsEmpty()) {
@@ -228,7 +230,6 @@ NAN_METHOD(start) {
       }
     }
 
-    Tags runtime_tags;
     auto maybe_runtime_tags = options->Get(context, runtimeTagsKey);
     if (!maybe_runtime_tags.IsEmpty()) {
       tagsFromObject(isolate,
@@ -247,7 +248,8 @@ NAN_METHOD(start) {
         uv_timer_start(&lag_timer, record_lag, POLL_PERIOD_MS, POLL_PERIOD_MS);
 
         uv_timer_init(uv_default_loop(), &fd_timer);
-        uv_timer_start(&fd_timer, record_fd_activity, FD_PERIOD_MS, FD_PERIOD_MS);
+        uv_timer_start(&fd_timer, record_fd_activity, FD_PERIOD_MS,
+                       FD_PERIOD_MS);
         timer_started = true;
 
         create_memory_meters();
@@ -257,9 +259,15 @@ NAN_METHOD(start) {
         Nan::AddGCPrologueCallback(beforeGC);
         Nan::AddGCEpilogueCallback(afterGC);
 
-        open_fd_gauge = atlas_registry.gauge(node_id("openFileDescriptorsCount"));
+        open_fd_gauge =
+            atlas_registry.gauge(node_id("openFileDescriptorsCount"));
         max_fd_gauge = atlas_registry.gauge(node_id("maxFileDescriptorsCount"));
       }
+    }
+
+    auto maybe_dev_mode = options->Get(context, devModeKey);
+    if (!maybe_dev_mode.IsEmpty()) {
+      dev_mode = maybe_dev_mode.ToLocalChecked().As<v8::Boolean>()->Value();
     }
   }
 

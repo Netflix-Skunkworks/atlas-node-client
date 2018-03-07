@@ -302,4 +302,40 @@ describe('atlas extension', () => {
     };
     assert.throw(fn, /invalidKey/);
   });
+
+  it('should validate metrics when in dev mode', () => {
+    atlas.setDevMode(true);
+    const noName = () => {
+      atlas.counter('');
+    };
+    assert.throw(noName, /empty/);
+
+    const invalidTagKey = () => {
+      const tags = {};
+      tags['a'.repeat(70)] = 'v';
+      atlas.timer('foo', tags);
+    };
+    assert.throw(invalidTagKey, /exceeds length/);
+
+    const invalidTagVal = () => {
+      atlas.timer('foo', {k: 'a'.repeat(160)});
+    };
+    assert.throw(invalidTagVal, /exceeds length/);
+
+    const tooManyTags = () => {
+      const tags = {};
+
+      for (let i = 0; i < 22; ++i) {
+        tags[i] = 'v';
+      }
+      atlas.counter('f', tags);
+    };
+    assert.throw(tooManyTags, /user tags/);
+
+    const reserved = () => {
+      atlas.counter('foo', {'atlas.test': 'foo'});
+    };
+    assert.throw(reserved, /reserved namespace/);
+
+  });
 });

@@ -13,6 +13,9 @@
 #include <atlas/meter/subscription_max_gauge.h>
 #include <nan.h>
 
+// enable/disable development mode
+NAN_METHOD(set_dev_mode);
+
 // get an array of measurements intended for the main publish pipeline
 NAN_METHOD(measurements);
 //
@@ -93,7 +96,7 @@ class JsDCounter : public Nan::ObjectWrap {
 
   std::shared_ptr<atlas::meter::DCounter> counter_;
 };
-  
+
 // wrapper for a timer
 class JsTimer : public Nan::ObjectWrap {
  public:
