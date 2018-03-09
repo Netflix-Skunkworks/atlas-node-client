@@ -1,3 +1,9 @@
+## 1.21.1 (2018-03-09)
+
+#### Fix
+
+* Make sure metrics always have a valid name. 
+
 ## 1.21.0 (2018-03-06)
 
 #### New
