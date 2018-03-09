@@ -164,6 +164,9 @@ IdPtr idFromValue(const Nan::FunctionCallbackInfo<v8::Value>& info, int argc) {
         "tags");
   }
   std::string name{*Nan::Utf8String(info[0])};
+  if (name.empty()) {
+    Nan::ThrowError("Cannot create a metric with an empty name");
+  }
 
   Tags tags;
   if (argc == 2) {

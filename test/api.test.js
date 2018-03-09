@@ -303,6 +303,14 @@ describe('atlas extension', () => {
     assert.throw(fn, /invalidKey/);
   });
 
+  it('should make sure metrics have a name', () => {
+    atlas.setDevMode(false);
+    const noName = () => {
+      atlas.counter('');
+    };
+    assert.throw(noName, /empty/);
+  });
+
   it('should validate metrics when in dev mode', () => {
     atlas.setDevMode(true);
     const noName = () => {
