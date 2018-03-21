@@ -1,3 +1,9 @@
+## 1.22.0 (2018-03-21)
+
+#### Fix
+
+* Make sure we do not throw errors in production
+
 ## 1.21.1 (2018-03-09)
 
 #### Fix

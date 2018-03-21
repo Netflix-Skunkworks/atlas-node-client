@@ -90,6 +90,7 @@ NAN_METHOD(config) {
 }
 
 static Measurement getMeasurement(v8::Isolate* isolate, Local<v8::Value> v) {
+  std::string err_msg;
   auto o = v->ToObject();
   auto nameVal =
       Nan::Get(o, Nan::New("name").ToLocalChecked()).ToLocalChecked();
@@ -105,7 +106,7 @@ static Measurement getMeasurement(v8::Isolate* isolate, Local<v8::Value> v) {
                      .ToLocalChecked()
                      ->ToObject();
   Tags tags;
-  tagsFromObject(isolate, tagsObj, &tags);
+  tagsFromObject(isolate, tagsObj, &tags, &err_msg);
 
   auto id = atlas_registry.CreateId(name, tags);
   return Measurement{id, timestamp, value};

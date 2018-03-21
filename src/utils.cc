@@ -128,7 +128,7 @@ static void throw_if_invalid(const std::string& name, const Tags& tags) {
 }
 
 bool tagsFromObject(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
-                    Tags* tags) {
+                    Tags* tags, std::string* error_msg) {
   auto context = isolate->GetCurrentContext();
   auto maybe_props = object->GetOwnPropertyNames(context);
   if (!maybe_props.IsEmpty()) {
@@ -140,49 +140,67 @@ bool tagsFromObject(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
       const auto& k = std::string(*Nan::Utf8String(key));
       const auto& v = std::string(*Nan::Utf8String(value));
       if (k.empty()) {
-        Nan::ThrowError("Cannot have an empty key when specifying tags");
+        *error_msg = "Cannot have an empty key when specifying tags";
+        return false;
       }
       if (v.empty()) {
-        auto err_msg = "Cannot have an empty value for key '" + k +
-                       "' when specifying tags";
-        Nan::ThrowError(err_msg.c_str());
+        *error_msg = "Cannot have an empty value for key '" + k +
+                     "' when specifying tags";
+        return false;
       }
       tags->add(k.c_str(), v.c_str());
     }
-    return true;
-  } else {
-    return false;
   }
+  return true;
 }
 
 IdPtr idFromValue(const Nan::FunctionCallbackInfo<v8::Value>& info, int argc) {
+  std::string err_msg;
+  Tags tags;
+  std::string name;
+
   if (argc == 0) {
-    Nan::ThrowError("Need at least one argument to specify a metric name");
+    err_msg = "Need at least one argument to specify a metric name";
+    goto error;
   } else if (argc > 2) {
-    Nan::ThrowError(
-        "Expecting at most two arguments: a name and an object describing "
-        "tags");
+    err_msg =
+        "Expecting at most two arguments: a name and an object describing tags";
+    goto error;
   }
-  std::string name{*Nan::Utf8String(info[0])};
+  name = *Nan::Utf8String(info[0]);
   if (name.empty()) {
-    Nan::ThrowError("Cannot create a metric with an empty name");
+    err_msg = "Cannot create a metric with an empty name";
+    goto error;
   }
 
-  Tags tags;
   if (argc == 2) {
     // read the object which should just have string keys and string values
     const auto& maybe_o = info[1];
     if (maybe_o->IsObject()) {
-      tagsFromObject(info.GetIsolate(), maybe_o->ToObject(), &tags);
+      if (!tagsFromObject(info.GetIsolate(), maybe_o->ToObject(), &tags,
+                          &err_msg)) {
+        err_msg += " for metric name '" + name + "'";
+        goto error;
+      }
     } else {
-      Nan::ThrowError(
+      err_msg =
           "Expected an object with string keys and string values as the second "
-          "argument");
+          "argument";
+      goto error;
     }
   }
 
+  // do expensive validation only in dev mode
   if (dev_mode) {
     throw_if_invalid(name, tags);
   }
   return atlas_registry.CreateId(name, tags);
+error:
+  if (dev_mode) {
+    Nan::ThrowError(err_msg.c_str());
+  } else {
+    fprintf(stderr, "Error creating atlas metric ID: %s\n", err_msg.c_str());
+  }
+  tags.add("atlas.invalid", "true");
+  return atlas_registry.CreateId("invalid", tags);
 }

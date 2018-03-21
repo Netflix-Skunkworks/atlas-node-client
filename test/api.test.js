@@ -281,36 +281,6 @@ describe('atlas extension', () => {
     assert.isAtLeast(d.measurements.length, 2);
   });
 
-  it('should throw an error when creating meters with no name', () => {
-    assert.throw(atlas.counter, /name/);
-  });
-
-  it('should throw an error when creating meters with empty key tags', () => {
-    const fn = () => {
-      atlas.counter('error', {
-        '': 'value'
-      });
-    };
-    assert.throw(fn, /empty key/);
-  });
-
-  it('should throw an error when creating meters with empty value tags', () => {
-    const fn = () => {
-      atlas.counter('error', {
-        invalidKey: ''
-      });
-    };
-    assert.throw(fn, /invalidKey/);
-  });
-
-  it('should make sure metrics have a name', () => {
-    atlas.setDevMode(false);
-    const noName = () => {
-      atlas.counter('');
-    };
-    assert.throw(noName, /empty/);
-  });
-
   it('should validate metrics when in dev mode', () => {
     atlas.setDevMode(true);
     const noName = () => {
@@ -344,6 +314,47 @@ describe('atlas extension', () => {
       atlas.counter('foo', {'atlas.test': 'foo'});
     };
     assert.throw(reserved, /reserved namespace/);
+
+  });
+
+  it('should not throw when in prod', () => {
+    atlas.setDevMode(false);
+
+    // empty name
+    atlas.counter('');
+
+    // empty key
+    atlas.counter('foo', { '': undefined });
+
+    // empty val
+    atlas.counter('foo', { 'k': '' });
+
+    const invalidTagKey = () => {
+      const tags = {};
+      tags['a'.repeat(70)] = 'v';
+      atlas.timer('foo', tags);
+    };
+    invalidTagKey();
+
+    const invalidTagVal = () => {
+      atlas.timer('foo', {k: 'a'.repeat(160)});
+    };
+    invalidTagVal();
+
+    const tooManyTags = () => {
+      const tags = {};
+
+      for (let i = 0; i < 22; ++i) {
+        tags[i] = 'v';
+      }
+      atlas.counter('f', tags);
+    };
+    tooManyTags();
+
+    const reserved = () => {
+      atlas.counter('foo', {'atlas.test': 'foo'});
+    };
+    reserved();
 
   });
 });

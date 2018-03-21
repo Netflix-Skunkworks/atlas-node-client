@@ -232,9 +232,10 @@ NAN_METHOD(start) {
 
     auto maybe_runtime_tags = options->Get(context, runtimeTagsKey);
     if (!maybe_runtime_tags.IsEmpty()) {
+      std::string err_msg;
       tagsFromObject(isolate,
                      maybe_runtime_tags.ToLocalChecked().As<v8::Object>(),
-                     &runtime_tags);
+                     &runtime_tags, &err_msg);
     }
 
     auto maybeRuntimeMetrics = options->Get(context, runtimeMetricsKey);
