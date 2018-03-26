@@ -327,7 +327,7 @@ describe('atlas extension', () => {
     atlas.counter('foo', { '': undefined });
 
     // empty val
-    atlas.counter('foo', { 'k': '' });
+    atlas.counter('foo', { k: '' });
 
     const invalidTagKey = () => {
       const tags = {};
