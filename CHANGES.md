@@ -1,3 +1,11 @@
+## 1.22.1 (2018-03-26)
+
+#### Fix
+
+* Uses native client 3.7.3 which removes the use of sleep allowing the client
+  to be started and stopped quickly (in integration tests for example), plus
+  some other bug fixes.
+
 ## 1.22.0 (2018-03-21)
 
 #### Fix
