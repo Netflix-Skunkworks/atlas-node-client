@@ -1,4 +1,5 @@
 #include "functions.h"
+#include "atlas.h"
 #include "utils.h"
 #include <chrono>
 #include <sstream>
@@ -23,23 +24,26 @@ NAN_METHOD(set_dev_mode) {
 }
 
 NAN_METHOD(measurements) {
-  auto config = atlas::GetConfig();
-  auto common_tags = config.CommonTags();
-  const auto& measurements =
-      atlas_registry.GetMainMeasurements(config, common_tags);
+  auto config = atlas_client().GetConfig();
+  auto common_tags = config->CommonTags();
+  const auto& measurements = atlas_registry()->measurements();
 
   auto ret = Nan::New<v8::Array>();
 
-  for (const auto& m : *measurements) {
+  for (const auto& m : measurements) {
     auto measurement = Nan::New<Object>();
     auto tags = Nan::New<Object>();
-    const auto& t = m->all_tags();
+    const auto& t = m.id->GetTags();
+    for (const auto& kv : common_tags) {
+      tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
+                Nan::New(kv.second.get()).ToLocalChecked());
+    }
     for (const auto& kv : t) {
       tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
                 Nan::New(kv.second.get()).ToLocalChecked());
     }
     measurement->Set(Nan::New("tags").ToLocalChecked(), tags);
-    measurement->Set(Nan::New("value").ToLocalChecked(), Nan::New(m->value()));
+    measurement->Set(Nan::New("value").ToLocalChecked(), Nan::New(m.value));
     ret->Set(ret->Length(), measurement);
   }
 
@@ -47,10 +51,10 @@ NAN_METHOD(measurements) {
 }
 
 NAN_METHOD(config) {
-  auto currentCfg = atlas::GetConfig();
-  const auto& endpoints = currentCfg.EndpointConfiguration();
-  const auto& log = currentCfg.LogConfiguration();
-  const auto& http = currentCfg.HttpConfiguration();
+  auto currentCfg = atlas_client().GetConfig();
+  const auto& endpoints = currentCfg->EndpointConfiguration();
+  const auto& log = currentCfg->LogConfiguration();
+  const auto& http = currentCfg->HttpConfiguration();
   auto ret = Nan::New<Object>();
   ret->Set(Nan::New("evaluateUrl").ToLocalChecked(),
            Nan::New(endpoints.evaluate.c_str()).ToLocalChecked());
@@ -59,7 +63,7 @@ NAN_METHOD(config) {
   ret->Set(Nan::New("publishUrl").ToLocalChecked(),
            Nan::New(endpoints.publish.c_str()).ToLocalChecked());
   ret->Set(Nan::New("subscriptionsRefreshMillis").ToLocalChecked(),
-           Nan::New(static_cast<double>(currentCfg.SubRefreshMillis())));
+           Nan::New(static_cast<double>(currentCfg->SubRefreshMillis())));
   ret->Set(Nan::New("batchSize").ToLocalChecked(), Nan::New(http.batch_size));
   ret->Set(Nan::New("connectTimeout").ToLocalChecked(),
            Nan::New(http.connect_timeout));
@@ -70,21 +74,21 @@ NAN_METHOD(config) {
   ret->Set(Nan::New("dumpSubscriptions").ToLocalChecked(),
            Nan::New(log.dump_subscriptions));
   ret->Set(Nan::New("publishEnabled").ToLocalChecked(),
-           Nan::New(currentCfg.IsMainEnabled()));
+           Nan::New(currentCfg->IsMainEnabled()));
 
   auto pubCfg = Nan::New<v8::Array>();
-  for (const auto& expr : currentCfg.PublishConfig()) {
+  for (const auto& expr : currentCfg->PublishConfig()) {
     pubCfg->Set(pubCfg->Length(), Nan::New(expr.c_str()).ToLocalChecked());
   }
   ret->Set(Nan::New("publishConfig").ToLocalChecked(), pubCfg);
   auto commonTags = Nan::New<Object>();
-  for (const auto& kv : currentCfg.CommonTags()) {
+  for (const auto& kv : currentCfg->CommonTags()) {
     commonTags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
                     Nan::New(kv.second.get()).ToLocalChecked());
   }
   ret->Set(Nan::New("commonTags").ToLocalChecked(), commonTags);
   ret->Set(Nan::New("loggingDirectory").ToLocalChecked(),
-           Nan::New(currentCfg.LoggingDirectory().c_str()).ToLocalChecked());
+           Nan::New(currentCfg->LoggingDirectory().c_str()).ToLocalChecked());
 
   info.GetReturnValue().Set(ret);
 }
@@ -108,7 +112,7 @@ static Measurement getMeasurement(v8::Isolate* isolate, Local<v8::Value> v) {
   Tags tags;
   tagsFromObject(isolate, tagsObj, &tags, &err_msg);
 
-  auto id = atlas_registry.CreateId(name, tags);
+  auto id = atlas_registry()->CreateId(name, tags);
   return Measurement{id, timestamp, value};
 }
 
@@ -119,7 +123,7 @@ NAN_METHOD(push) {
     for (uint32_t i = 0; i < measurements->Length(); ++i) {
       ms.push_back(getMeasurement(info.GetIsolate(), measurements->Get(i)));
     }
-    PushMeasurements(ms);
+    atlas_client().Push(ms);
   } else {
     Nan::ThrowError("atlas.push() expects an array of measurements");
   }
@@ -272,7 +276,7 @@ NAN_METHOD(JsCounter::Count) {
   info.GetReturnValue().Set(count);
 }
 
-JsCounter::JsCounter(IdPtr id) : counter_{atlas_registry.counter(id)} {}
+JsCounter::JsCounter(IdPtr id) : counter_{atlas_registry()->counter(id)} {}
 
 NAN_MODULE_INIT(JsDCounter::Init) {
   // Prepare constructor template
@@ -319,7 +323,7 @@ NAN_METHOD(JsDCounter::Count) {
   info.GetReturnValue().Set(count);
 }
 
-JsDCounter::JsDCounter(IdPtr id) : counter_{atlas_registry.dcounter(id)} {}
+JsDCounter::JsDCounter(IdPtr id) : counter_{atlas_registry()->dcounter(id)} {}
 
 NAN_MODULE_INIT(JsIntervalCounter::Init) {
   // Prepare constructor template
@@ -381,7 +385,7 @@ NAN_METHOD(JsIntervalCounter::SecondsSinceLastUpdate) {
 }
 
 JsIntervalCounter::JsIntervalCounter(IdPtr id)
-    : counter_{std::make_shared<atlas::meter::IntervalCounter>(&atlas_registry,
+    : counter_{std::make_shared<atlas::meter::IntervalCounter>(atlas_registry(),
                                                                id)} {}
 
 NAN_MODULE_INIT(JsTimer::Init) {
@@ -446,7 +450,7 @@ NAN_METHOD(JsTimer::TimeThis) {
     auto global = context->Global();
     auto function = v8::Handle<Function>::Cast(info[0]);
 
-    const auto& clock = atlas_registry.clock();
+    const auto& clock = atlas_registry()->clock();
     auto start = clock.MonotonicTime();
 
     auto result = function->Call(global, 0, nullptr);
@@ -469,10 +473,10 @@ NAN_METHOD(JsTimer::Count) {
   info.GetReturnValue().Set(count);
 }
 
-JsTimer::JsTimer(IdPtr id) : timer_{atlas_registry.timer(id)} {}
+JsTimer::JsTimer(IdPtr id) : timer_{atlas_registry()->timer(id)} {}
 
 JsLongTaskTimer::JsLongTaskTimer(IdPtr id)
-    : timer_{atlas_registry.long_task_timer(id)} {}
+    : timer_{atlas_registry()->long_task_timer(id)} {}
 
 NAN_MODULE_INIT(JsLongTaskTimer::Init) {
   Nan::HandleScope scope;
@@ -578,7 +582,7 @@ NAN_METHOD(JsGauge::Value) {
   info.GetReturnValue().Set(value);
 }
 
-JsGauge::JsGauge(IdPtr id) : gauge_{atlas_registry.gauge(id)} {}
+JsGauge::JsGauge(IdPtr id) : gauge_{atlas_registry()->gauge(id)} {}
 
 NAN_MODULE_INIT(JsMaxGauge::Init) {
   Nan::HandleScope scope;
@@ -620,7 +624,8 @@ NAN_METHOD(JsMaxGauge::Update) {
   g->max_gauge_->Update(value);
 }
 
-JsMaxGauge::JsMaxGauge(IdPtr id) : max_gauge_{atlas_registry.max_gauge(id)} {}
+JsMaxGauge::JsMaxGauge(IdPtr id)
+    : max_gauge_{atlas_registry()->max_gauge(id)} {}
 
 NAN_MODULE_INIT(JsDistSummary::Init) {
   Nan::HandleScope scope;
@@ -672,7 +677,7 @@ NAN_METHOD(JsDistSummary::Record) {
 }
 
 JsDistSummary::JsDistSummary(IdPtr id)
-    : dist_summary_{atlas_registry.distribution_summary(id)} {}
+    : dist_summary_{atlas_registry()->distribution_summary(id)} {}
 
 static std::string kEmptyString;
 static int64_t GetNumKey(Local<v8::Context> context, Local<Object> object,
@@ -740,10 +745,10 @@ static Maybe<BucketFunction> bucketFuncFromObject(v8::Isolate* isolate,
 
   using atlas::meter::bucket_functions::Age;
   using atlas::meter::bucket_functions::AgeBiasOld;
-  using atlas::meter::bucket_functions::Latency;
-  using atlas::meter::bucket_functions::LatencyBiasSlow;
   using atlas::meter::bucket_functions::Bytes;
   using atlas::meter::bucket_functions::Decimal;
+  using atlas::meter::bucket_functions::Latency;
+  using atlas::meter::bucket_functions::LatencyBiasSlow;
 
   auto context = isolate->GetCurrentContext();
   auto props = object->GetOwnPropertyNames(context).ToLocalChecked();
@@ -846,7 +851,7 @@ NAN_METHOD(JsBucketCounter::Record) {
 
 JsBucketCounter::JsBucketCounter(IdPtr id, BucketFunction bucket_function)
     : bucket_counter_{std::make_shared<atlas::meter::BucketCounter>(
-          &atlas_registry, id, bucket_function)} {}
+          atlas_registry(), id, bucket_function)} {}
 
 NAN_MODULE_INIT(JsBucketDistSummary::Init) {
   Nan::HandleScope scope;
@@ -896,7 +901,7 @@ JsBucketDistSummary::JsBucketDistSummary(IdPtr id,
                                          BucketFunction bucket_function)
     : bucket_dist_summary_{
           std::make_shared<atlas::meter::BucketDistributionSummary>(
-              &atlas_registry, id, bucket_function)} {}
+              atlas_registry(), id, bucket_function)} {}
 
 NAN_MODULE_INIT(JsBucketTimer::Init) {
   Nan::HandleScope scope;
@@ -958,7 +963,7 @@ NAN_METHOD(JsBucketTimer::Record) {
 
 JsBucketTimer::JsBucketTimer(IdPtr id, BucketFunction bucket_function)
     : bucket_timer_{std::make_shared<atlas::meter::BucketTimer>(
-          &atlas_registry, id, bucket_function)} {}
+          atlas_registry(), id, bucket_function)} {}
 
 NAN_MODULE_INIT(JsPercentileTimer::Init) {
   Nan::HandleScope scope;
@@ -1039,7 +1044,7 @@ NAN_METHOD(JsPercentileTimer::Percentile) {
 
 JsPercentileTimer::JsPercentileTimer(IdPtr id)
     : perc_timer_{std::make_shared<atlas::meter::PercentileTimer>(
-          &atlas_registry, id)} {}
+          atlas_registry(), id)} {}
 
 NAN_MODULE_INIT(JsPercentileDistSummary::Init) {
   Nan::HandleScope scope;
@@ -1105,4 +1110,4 @@ NAN_METHOD(JsPercentileDistSummary::Percentile) {
 JsPercentileDistSummary::JsPercentileDistSummary(IdPtr id)
     : perc_dist_summary_{
           std::make_shared<atlas::meter::PercentileDistributionSummary>(
-              &atlas_registry, id)} {}
+              atlas_registry(), id)} {}

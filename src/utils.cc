@@ -1,14 +1,14 @@
 #include "utils.h"
-#include <atlas/atlas_client.h>
+#include "atlas.h"
 #include <iostream>
 #include <sstream>
 #include <unordered_set>
 
 using atlas::meter::IdPtr;
 using atlas::meter::Tags;
+using atlas::util::intern_str;
 using atlas::util::StartsWith;
 using atlas::util::StrRef;
-using atlas::util::intern_str;
 
 bool dev_mode = false;
 
@@ -158,6 +158,7 @@ IdPtr idFromValue(const Nan::FunctionCallbackInfo<v8::Value>& info, int argc) {
   std::string err_msg;
   Tags tags;
   std::string name;
+  auto r = atlas_registry();
 
   if (argc == 0) {
     err_msg = "Need at least one argument to specify a metric name";
@@ -194,7 +195,7 @@ IdPtr idFromValue(const Nan::FunctionCallbackInfo<v8::Value>& info, int argc) {
   if (dev_mode) {
     throw_if_invalid(name, tags);
   }
-  return atlas_registry.CreateId(name, tags);
+  return r->CreateId(name, tags);
 error:
   if (dev_mode) {
     Nan::ThrowError(err_msg.c_str());
@@ -202,5 +203,5 @@ error:
     fprintf(stderr, "Error creating atlas metric ID: %s\n", err_msg.c_str());
   }
   tags.add("atlas.invalid", "true");
-  return atlas_registry.CreateId("invalid", tags);
+  return r->CreateId("invalid", tags);
 }

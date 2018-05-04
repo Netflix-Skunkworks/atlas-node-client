@@ -8,9 +8,6 @@
 #include <atlas/meter/interval_counter.h>
 #include <atlas/meter/percentile_dist_summary.h>
 #include <atlas/meter/percentile_timer.h>
-#include <atlas/meter/subscription_distribution_summary.h>
-#include <atlas/meter/subscription_gauge.h>
-#include <atlas/meter/subscription_max_gauge.h>
 #include <nan.h>
 
 // enable/disable development mode
