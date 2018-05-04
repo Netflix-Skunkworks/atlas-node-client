@@ -1,3 +1,11 @@
+## 1.23.0 (2018-05-04)
+
+#### Update
+
+* Uses native client 4.0.1 which includes improvements to the API, fixes for
+  subscriptions (lwc) and performance improvements.
+ 
+#### Fix
 ## 1.22.1 (2018-03-26)
 
 #### Fix

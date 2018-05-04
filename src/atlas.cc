@@ -1,13 +1,23 @@
+#include "atlas.h"
 #include "start_stop.h"
 #include "functions.h"
 
-using v8::FunctionTemplate;
+using Nan::GetFunction;
 using Nan::New;
 using Nan::Set;
-using Nan::GetFunction;
+using v8::FunctionTemplate;
 
 // atlas.cc represents the top level of the module.
 // C++ constructs that are exposed to javascript are exported here
+
+atlas::Client& atlas_client() {
+  static atlas::Client client;
+  return client;
+}
+
+atlas::meter::Registry* atlas_registry() {
+  return atlas_client().GetRegistry().get();
+}
 
 NAN_MODULE_INIT(InitAll) {
   Set(target, New("start").ToLocalChecked(),

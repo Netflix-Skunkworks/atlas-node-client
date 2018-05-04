@@ -1,17 +1,18 @@
 #include "start_stop.h"
+#include "atlas.h"
 #include "utils.h"
-#include <atlas/atlas_client.h>
 #include <unordered_map>
 #include <sys/resource.h>
 
 using atlas::meter::Counter;
 using atlas::meter::Gauge;
 using atlas::meter::IdPtr;
+using atlas::meter::Registry;
 using atlas::meter::Tag;
 using atlas::meter::Tags;
 using atlas::meter::Timer;
-using v8::HeapSpaceStatistics;
 using v8::GCType;
+using v8::HeapSpaceStatistics;
 
 static bool started = false;
 static bool timer_started = false;
@@ -29,7 +30,7 @@ static std::shared_ptr<Gauge<double>> open_fd_gauge;
 static std::shared_ptr<Gauge<double>> max_fd_gauge;
 
 static void record_lag(uv_timer_t* handle) {
-  auto now = atlas_registry.clock().MonotonicTime();
+  auto now = atlas_registry()->clock().MonotonicTime();
   // compute lag
   if (prev_timestamp == 0) {
     prev_timestamp = now;
@@ -79,28 +80,26 @@ static std::shared_ptr<Gauge<double>> max_data_size;
 static std::unordered_map<int, std::shared_ptr<Timer>> gc_timers;
 
 inline IdPtr node_id(const char* name) {
-  return atlas_registry.CreateId(name, runtime_tags);
+  return atlas_registry()->CreateId(name, runtime_tags);
 }
 
-static void create_memory_meters() {
-  alloc_rate_counter =
-      atlas_registry.counter(node_id("nodejs.gc.allocationRate"));
-  promotion_rate_counter =
-      atlas_registry.counter(node_id("nodejs.gc.promotionRate"));
-  live_data_size = atlas_registry.gauge(node_id("nodejs.gc.liveDataSize"));
-  max_data_size = atlas_registry.gauge(node_id("nodejs.gc.maxDataSize"));
+static void create_memory_meters(Registry* r) {
+  alloc_rate_counter = r->counter(node_id("nodejs.gc.allocationRate"));
+  promotion_rate_counter = r->counter(node_id("nodejs.gc.promotionRate"));
+  live_data_size = r->gauge(node_id("nodejs.gc.liveDataSize"));
+  max_data_size = r->gauge(node_id("nodejs.gc.maxDataSize"));
 }
 
-static void create_gc_timers() {
+static void create_gc_timers(Registry* r) {
   auto base_id = node_id("nodejs.gc.pause");
   gc_timers[v8::kGCTypeScavenge] =
-      atlas_registry.timer(base_id->WithTag(Tag::of("id", "scavenge")));
+      r->timer(base_id->WithTag(Tag::of("id", "scavenge")));
   gc_timers[v8::kGCTypeMarkSweepCompact] =
-      atlas_registry.timer(base_id->WithTag(Tag::of("id", "markSweepCompact")));
-  gc_timers[v8::kGCTypeIncrementalMarking] = atlas_registry.timer(
-      base_id->WithTag(Tag::of("id", "incrementalMarking")));
-  gc_timers[v8::kGCTypeProcessWeakCallbacks] = atlas_registry.timer(
-      base_id->WithTag(Tag::of("id", "processWeakCallbacks")));
+      r->timer(base_id->WithTag(Tag::of("id", "markSweepCompact")));
+  gc_timers[v8::kGCTypeIncrementalMarking] =
+      r->timer(base_id->WithTag(Tag::of("id", "incrementalMarking")));
+  gc_timers[v8::kGCTypeProcessWeakCallbacks] =
+      r->timer(base_id->WithTag(Tag::of("id", "processWeakCallbacks")));
 }
 
 static std::shared_ptr<Timer> get_gc_timer(GCType type) {
@@ -111,7 +110,7 @@ static std::shared_ptr<Timer> get_gc_timer(GCType type) {
   }
 
   // Unknown GC type - should never happen with node 6.x or 7.x
-  return atlas_registry.timer(
+  return atlas_registry()->timer(
       node_id("nodejs.gc.pause")
           ->WithTag(Tag::of("id", std::to_string(int_type))));
 }
@@ -143,7 +142,7 @@ static bool fill_heap_stats(HeapSpaceStatistics* stats) {
 }
 
 static NAN_GC_CALLBACK(beforeGC) {
-  startGC = atlas_registry.clock().MonotonicTime();
+  startGC = atlas_registry()->clock().MonotonicTime();
   fill_heap_stats(beforeStats);
 }
 
@@ -159,7 +158,7 @@ static int find_space_idx(HeapSpaceStatistics* stats, const char* name) {
 }
 
 static NAN_GC_CALLBACK(afterGC) {
-  auto elapsed = atlas_registry.clock().MonotonicTime() - startGC;
+  auto elapsed = atlas_registry()->clock().MonotonicTime() - startGC;
   get_gc_timer(type)->Record(elapsed);
 
   auto stats = alloc_heap_stats();
@@ -243,8 +242,9 @@ NAN_METHOD(start) {
       auto runtimeMetrics =
           maybeRuntimeMetrics.ToLocalChecked().As<v8::Boolean>()->Value();
       if (runtimeMetrics) {
+        auto r = atlas_registry();
         // setup lag timer
-        atlas_lag_timer = atlas_registry.timer(node_id("nodejs.eventLoopLag"));
+        atlas_lag_timer = r->timer(node_id("nodejs.eventLoopLag"));
         uv_timer_init(uv_default_loop(), &lag_timer);
         uv_timer_start(&lag_timer, record_lag, POLL_PERIOD_MS, POLL_PERIOD_MS);
 
@@ -253,16 +253,15 @@ NAN_METHOD(start) {
                        FD_PERIOD_MS);
         timer_started = true;
 
-        create_memory_meters();
-        create_gc_timers();
+        create_memory_meters(r);
+        create_gc_timers(r);
         beforeStats = alloc_heap_stats();
 
         Nan::AddGCPrologueCallback(beforeGC);
         Nan::AddGCEpilogueCallback(afterGC);
 
-        open_fd_gauge =
-            atlas_registry.gauge(node_id("openFileDescriptorsCount"));
-        max_fd_gauge = atlas_registry.gauge(node_id("maxFileDescriptorsCount"));
+        open_fd_gauge = r->gauge(node_id("openFileDescriptorsCount"));
+        max_fd_gauge = r->gauge(node_id("maxFileDescriptorsCount"));
       }
     }
 
@@ -273,15 +272,15 @@ NAN_METHOD(start) {
   }
 
   if (!log_dirs.empty()) {
-    SetLoggingDirs(log_dirs);
+    atlas_client().SetLoggingDirs(log_dirs);
   }
-  InitAtlas();
+  atlas_client().Start();
   started = true;
 }
 
 NAN_METHOD(stop) {
   if (started) {
-    ShutdownAtlas();
+    atlas_client().Stop();
     started = false;
   }
 
