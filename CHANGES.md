@@ -1,3 +1,10 @@
+## 1.23.1 (2018-05-16)
+
+#### Update
+
+* Uses native client 0.4.2 (new versioning) which expires meters from the
+  registry, and includes some minor performance improvements.
+ 
 ## 1.23.0 (2018-05-04)
 
 #### Update
