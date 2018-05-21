@@ -1,14 +1,18 @@
 #include "functions.h"
 #include "atlas.h"
 #include "utils.h"
+#include <atlas/meter/validation.h>
 #include <chrono>
 #include <sstream>
 
+using atlas::meter::AnalyzeTags;
 using atlas::meter::BucketFunction;
 using atlas::meter::IdPtr;
 using atlas::meter::Measurement;
 using atlas::meter::Measurements;
 using atlas::meter::Tags;
+using atlas::meter::ValidationIssue;
+using atlas::meter::ValidationIssues;
 using v8::Context;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -21,6 +25,77 @@ NAN_METHOD(set_dev_mode) {
     auto b = info[0]->BooleanValue();
     dev_mode = b;
   }
+}
+
+static void addTags(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
+                    Tags* tags) {
+  auto context = isolate->GetCurrentContext();
+  auto maybe_props = object->GetOwnPropertyNames(context);
+  if (!maybe_props.IsEmpty()) {
+    auto props = maybe_props.ToLocalChecked();
+    auto n = props->Length();
+    for (uint32_t i = 0; i < n; ++i) {
+      const auto& key = props->Get(i);
+      const auto& value = object->Get(key);
+      const auto& k = std::string(*Nan::Utf8String(key));
+      const auto& v = std::string(*Nan::Utf8String(value));
+      tags->add(k.c_str(), v.c_str());
+    }
+  }
+}
+
+NAN_METHOD(analyze_id) {
+  const char* err_msg = nullptr;
+  std::string name;
+  ValidationIssues res;
+  Tags tags;
+  auto ret = Nan::New<v8::Array>();
+
+  if (info.Length() > 2) {
+    err_msg =
+        "Expecting at most two arguments: a name and an object describing tags";
+    goto error;
+  }
+
+  if (info.Length() >= 1) {
+    name = *Nan::Utf8String(info[0]);
+    tags.add("name", name.c_str());
+  }
+
+  if (info.Length() == 2 && !(info[1]->IsUndefined() || info[1]->IsNull())) {
+    const auto& maybe_o = info[1];
+    if (maybe_o->IsObject()) {
+      addTags(info.GetIsolate(), maybe_o->ToObject(), &tags);
+    } else {
+      err_msg =
+          "Expected an object with string keys and string values as the second "
+          "argument";
+      goto error;
+    }
+  }
+
+  res = AnalyzeTags(tags);
+  if (res.empty()) {
+    return;
+  }
+
+  for (const auto& issue : res) {
+    auto js_issue = Nan::New<Object>();
+    auto level =
+        issue.level == ValidationIssue::Level::ERROR ? "ERROR" : "WARN";
+    js_issue->Set(Nan::New(level).ToLocalChecked(),
+                  Nan::New(issue.description.c_str()).ToLocalChecked());
+    ret->Set(ret->Length(), js_issue);
+  }
+error:
+  if (err_msg != nullptr) {
+    auto js_issue = Nan::New<Object>();
+    js_issue->Set(Nan::New("ERROR").ToLocalChecked(),
+                  Nan::New(err_msg).ToLocalChecked());
+    ret->Set(ret->Length(), js_issue);
+  }
+
+  info.GetReturnValue().Set(ret);
 }
 
 NAN_METHOD(measurements) {

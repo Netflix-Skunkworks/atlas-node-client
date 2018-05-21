@@ -1,3 +1,11 @@
+## 1.23.2 (2018-05-21)
+
+#### Update
+
+* Uses native client 0.4.4 and its `AnalyzeTags` helper function by exposing 
+  an `analyzeId()` function that takes a name, and tags to keep the interface
+  consistent with the meter functions.
+ 
 ## 1.23.1 (2018-05-16)
 
 #### Update
