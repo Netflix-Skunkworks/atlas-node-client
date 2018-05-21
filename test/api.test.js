@@ -396,7 +396,7 @@ describe('atlas extension', () => {
       assert.equal(tooManyTags.length, 1);
       // 22 tags + name > 20
       assert.match(tooManyTags[0].ERROR, /too many user tags.*23/i);
-    };
+    }
 
     const reserved = atlas.analyzeId('foo', {'atlas.test': 'foo'});
     assert.equal(reserved.length, 1);
