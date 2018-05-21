@@ -13,6 +13,9 @@
 // enable/disable development mode
 NAN_METHOD(set_dev_mode);
 
+// perform validation checks on name, tags
+NAN_METHOD(analyze_id);
+
 // get an array of measurements intended for the main publish pipeline
 NAN_METHOD(measurements);
 //

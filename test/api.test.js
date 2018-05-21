@@ -357,4 +357,57 @@ describe('atlas extension', () => {
     reserved();
 
   });
+
+  it('should validate metric IDs', () => {
+    const noName = atlas.analyzeId('');
+    assert.equal(noName.length, 1);
+    assert.match(noName[0].ERROR, /'name'/); // complains about 'name'
+
+    // empty key
+    const emptyKey = atlas.analyzeId('foo', { '': undefined });
+    assert.equal(emptyKey.length, 1);
+    assert.match(emptyKey[0].ERROR, /empty/i);
+
+    // empty val
+    const emptyVal = atlas.analyzeId('foo', { k: '' });
+    assert.equal(emptyVal.length, 1);
+    assert.match(emptyVal[0].ERROR, /key 'k' cannot be empty/i);
+
+    {
+      const key = 'a'.repeat(70);
+      const tags = {};
+      tags[key] = 'v';
+      const keyTooLong = atlas.analyzeId('foo', tags);
+      assert.equal(keyTooLong.length, 1);
+      assert.match(keyTooLong[0].ERROR, /aaaa' exceeds/i);
+    }
+
+    const valTooLong = atlas.analyzeId('foo', {k: 'a'.repeat(160)});
+    assert.equal(valTooLong.length, 1);
+    assert.match(valTooLong[0].ERROR, /aaa' for key 'k' exceeds/i);
+
+    {
+      const tags = {};
+
+      for (let i = 0; i < 22; ++i) {
+        tags[i] = 'v';
+      }
+      const tooManyTags = atlas.analyzeId('f', tags);
+      assert.equal(tooManyTags.length, 1);
+      // 22 tags + name > 20
+      assert.match(tooManyTags[0].ERROR, /too many user tags.*23/i);
+    };
+
+    const reserved = atlas.analyzeId('foo', {'atlas.test': 'foo'});
+    assert.equal(reserved.length, 1);
+    assert.match(reserved[0].ERROR, /reserved namespace/i);
+
+    // warning only
+    const warnings = atlas.analyzeId('foo ', {'bar#1': 'val%2'});
+    assert.equal(warnings.length, 3);
+
+    for (const issue of warnings) {
+      assert.match(issue.WARN, /encoded as/);
+    }
+  });
 });

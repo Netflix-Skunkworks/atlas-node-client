@@ -78,6 +78,9 @@ NAN_MODULE_INIT(InitAll) {
   Set(target, New("setDevMode").ToLocalChecked(),
       GetFunction(New<FunctionTemplate>(set_dev_mode)).ToLocalChecked());
 
+  Set(target, New("analyzeId").ToLocalChecked(),
+      GetFunction(New<FunctionTemplate>(analyze_id)).ToLocalChecked());
+
   JsCounter::Init(target);
   JsDCounter::Init(target);
   JsIntervalCounter::Init(target);
