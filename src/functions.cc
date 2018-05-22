@@ -104,10 +104,13 @@ NAN_METHOD(measurements) {
   const auto& measurements = atlas_registry()->measurements();
 
   auto ret = Nan::New<v8::Array>();
+  auto name = Nan::New("name").ToLocalChecked();
 
   for (const auto& m : measurements) {
     auto measurement = Nan::New<Object>();
     auto tags = Nan::New<Object>();
+    tags->Set(name, Nan::New(m.id->Name()).ToLocalChecked());
+
     const auto& t = m.id->GetTags();
     for (const auto& kv : common_tags) {
       tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
