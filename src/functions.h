@@ -14,7 +14,7 @@
 NAN_METHOD(set_dev_mode);
 
 // perform validation checks on name, tags
-NAN_METHOD(analyze_id);
+NAN_METHOD(validate_name_tags);
 
 // get an array of measurements intended for the main publish pipeline
 NAN_METHOD(measurements);
