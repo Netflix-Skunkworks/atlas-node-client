@@ -44,7 +44,7 @@ static void addTags(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
   }
 }
 
-NAN_METHOD(analyze_id) {
+NAN_METHOD(validate_name_tags) {
   const char* err_msg = nullptr;
   std::string name;
   ValidationIssues res;

@@ -107,8 +107,8 @@ function devMode(enabled) {
   atlas.setDevMode(enabled);
 }
 
-function analyzeId(name, tags) {
-  return atlas.analyzeId(name, tags);
+function validateNameAndTags(name, tags) {
+  return atlas.validateNameAndTags(name, tags);
 }
 
 let scope = function(commonTags) {
@@ -131,7 +131,7 @@ let scope = function(commonTags) {
     stop: stopAtlas,
     setDevMode: devMode,
     getDebugInfo: debugInfo,
-    analyzeId: analyzeId,
+    validateNameAndTags: validateNameAndTags,
     counter: (name, tags) => atlas.counter(
       name, Object.assign({}, commonTags, tags)),
     dcounter: (name, tags) => atlas.dcounter(

@@ -78,8 +78,8 @@ NAN_MODULE_INIT(InitAll) {
   Set(target, New("setDevMode").ToLocalChecked(),
       GetFunction(New<FunctionTemplate>(set_dev_mode)).ToLocalChecked());
 
-  Set(target, New("analyzeId").ToLocalChecked(),
-      GetFunction(New<FunctionTemplate>(analyze_id)).ToLocalChecked());
+  Set(target, New("validateNameAndTags").ToLocalChecked(),
+      GetFunction(New<FunctionTemplate>(validate_name_tags)).ToLocalChecked());
 
   JsCounter::Init(target);
   JsDCounter::Init(target);
