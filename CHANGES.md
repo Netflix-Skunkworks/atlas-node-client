@@ -1,3 +1,10 @@
+## 1.23.3 (2018-06-29)
+
+#### Update
+
+* Uses native client 0.4.5 which removes the sending of notifications to the alert server 
+  about lack of on-instance alerts support
+ 
 ## 1.23.2 (2018-05-22)
 
 #### Update
