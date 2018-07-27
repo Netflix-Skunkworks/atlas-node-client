@@ -1,3 +1,9 @@
+## 1.23.4 (2018-07-27)
+
+#### Fix
+
+* Output a better error message when failing to load the binary module
+
 ## 1.23.3 (2018-06-29)
 
 #### Update
