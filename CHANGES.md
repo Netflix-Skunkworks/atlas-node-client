@@ -1,3 +1,10 @@
+## 1.23.5 (2018-09-06)
+
+#### Update
+
+* Uses native client 0.5.1 to get a fix for handling the case where the user registers an Id with a type, and then attempts to register the same Id with a different type
+* Note that native client 0.5.x uses a consolidation registry so there might be some slight change in the behavior of certain metrics
+ 
 ## 1.23.4 (2018-07-27)
 
 #### Fix
