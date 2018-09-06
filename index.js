@@ -1,7 +1,6 @@
 'use strict';
 
 let atlas;
-const chalk = require('chalk');
 
 // See https://github.com/Netflix-Skunkworks/atlas-node-client/issues/25 for
 // more details.
@@ -10,17 +9,16 @@ try {
 } catch (loadErr) {
   if (loadErr.message &&
       /undefined symbol: [_\w]+atlas[_\w]+/.test(loadErr.message)) {
-    console.error(chalk.red('!!! Incompatible atlasclient dependencies ' +
-      'detected! !!!'));
+    console.error('!!! Incompatible atlasclient dependencies ' +
+      'detected! !!!');
     console.error('');
-    console.error(chalk.red('This is likely the result of loading two ' +
-      'incompatible versions of the atlasclient module.'));
-    console.error(chalk.red('Make sure all your atlasclient dependencies ' +
+    console.error('This is likely the result of loading two ' +
+      'incompatible versions of the atlasclient module.');
+    console.error('Make sure all your atlasclient dependencies ' +
       'specify the same version, or even better, that only your toplevel ' +
-      'application requires the atlasclient module'));
+      'application requires the atlasclient module');
     console.error('');
-    console.error(chalk.red('!!! Incompatible atlasclient dependencies ' +
-      'detected! !!!'));
+    console.error('!!! Incompatible atlasclient dependencies detected! !!!');
     console.error('');
   }
   throw loadErr;
