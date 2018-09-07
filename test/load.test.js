@@ -37,14 +37,15 @@ describe('atlas timers/counters', () => {
     });
 
     const atlas = require('../');
-    lineReader.on('line', function (line) {
+    lineReader.on('line', function(line) {
       const entry = JSON.parse(line);
       console.log('Handling ', entry);
-      processMetric(atlas, entry.type, entry.name, entry.tags || {}, entry.value);
+      processMetric(atlas, entry.type, entry.name,
+        entry.tags || {}, entry.value);
     });
 
-    lineReader.on('close', function () {
-      console.log("Done!");
+    lineReader.on('close', function() {
+      console.log('Done!');
       done();
     });
   });
