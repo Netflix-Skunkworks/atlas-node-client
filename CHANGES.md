@@ -1,3 +1,9 @@
+## 1.23.6 (2018-10-04)
+
+#### Update
+
+* Uses native client 0.5.2 to get a fix for flushing metrics at shutdown
+
 ## 1.23.5 (2018-09-06)
 
 #### Update
