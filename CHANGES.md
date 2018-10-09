@@ -1,3 +1,10 @@
+## 1.23.7 (2018-10-09)
+
+#### Update
+
+* Uses native client 0.5.3 to use step numbers in the consolidation registry. 
+  This allows it to correctly attribute the update to a given step.
+
 ## 1.23.6 (2018-10-04)
 
 #### Update
