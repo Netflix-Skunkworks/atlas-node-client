@@ -1,3 +1,10 @@
+## 1.23.8 (2018-10-11)
+
+#### Update
+
+* native-client 0.5.4 for fixes around attributing increments to the correct
+  bucket
+ 
 ## 1.23.7 (2018-10-09)
 
 #### Update
