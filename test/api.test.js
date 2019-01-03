@@ -3,6 +3,7 @@
 const atlas = require('../');
 const chai = require('chai');
 const assert = chai.assert;
+const expect = chai.expect;
 
 describe('atlas extension', () => {
   it('should provide counters', () => {
