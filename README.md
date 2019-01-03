@@ -1,6 +1,3 @@
-[![manual coverage](https://img.shields.io/badge/coverage-76%25-yellow.svg)]()
-[![nsp status](https://img.shields.io/badge/NSP%20status-no%20vulnerabilities-green.svg)](https://insight-engineering.builds.test.netflix.net/job/INSIGHT-atlas-node-client/)
-
 # Atlas Client for nodejs
 
 Module for generating metrics and sending them to atlas.
