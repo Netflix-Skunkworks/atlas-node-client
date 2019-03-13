@@ -107,12 +107,8 @@ nsp: node_modules $(ALL_FILES)
 .PHONY: prepush
 prepush: node_modules lint codestyle coverage nsp 
 
-.PHONY: clean-release
-clean-release:
-	@rm -rf $(ROOT)/build/Release
-
 .PHONY: package
-package: clean-release node_modules test lint codestyle
+package: node_modules test lint codestyle
 	@$(PREGYP) package
 
 .PHONY: publish

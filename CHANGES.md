@@ -1,3 +1,9 @@
+## 1.23.9 (2019-03-13)
+
+#### Update
+
+* native-client 0.5.6 for fixes around validation errors
+
 ## 1.23.8 (2018-10-11)
 
 #### Update
