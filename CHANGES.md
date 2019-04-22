@@ -1,3 +1,7 @@
+## 1.23.10 (2019-04-22)
+
+* native-client 0.5.7 fixes honoring the env var for disabled file
+
 ## 1.23.9 (2019-03-13)
 
 #### Update
