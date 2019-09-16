@@ -22,7 +22,7 @@ using v8::Object;
 
 NAN_METHOD(set_dev_mode) {
   if (info.Length() == 1 && info[0]->IsBoolean()) {
-    auto b = info[0]->BooleanValue();
+    auto b = info[0]->BooleanValue(info.GetIsolate());
     dev_mode = b;
   }
 }
@@ -35,8 +35,8 @@ static void addTags(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
     auto props = maybe_props.ToLocalChecked();
     auto n = props->Length();
     for (uint32_t i = 0; i < n; ++i) {
-      const auto& key = props->Get(i);
-      const auto& value = object->Get(key);
+      const auto& key = props->Get(context, i).ToLocalChecked();
+      const auto& value = object->Get(context, key).ToLocalChecked();
       const auto& k = std::string(*Nan::Utf8String(key));
       const auto& v = std::string(*Nan::Utf8String(value));
       tags->add(k.c_str(), v.c_str());
@@ -49,6 +49,7 @@ NAN_METHOD(validate_name_tags) {
   std::string name;
   ValidationIssues res;
   Tags tags;
+  auto context = Nan::GetCurrentContext();
   auto ret = Nan::New<v8::Array>();
 
   if (info.Length() > 2) {
@@ -65,7 +66,9 @@ NAN_METHOD(validate_name_tags) {
   if (info.Length() == 2 && !(info[1]->IsUndefined() || info[1]->IsNull())) {
     const auto& maybe_o = info[1];
     if (maybe_o->IsObject()) {
-      addTags(info.GetIsolate(), maybe_o->ToObject(), &tags);
+      addTags(info.GetIsolate(),
+              maybe_o->ToObject(Nan::GetCurrentContext()).ToLocalChecked(),
+              &tags);
     } else {
       err_msg =
           "Expected an object with string keys and string values as the second "
@@ -83,22 +86,27 @@ NAN_METHOD(validate_name_tags) {
     auto js_issue = Nan::New<Object>();
     auto level =
         issue.level == ValidationIssue::Level::ERROR ? "ERROR" : "WARN";
-    js_issue->Set(Nan::New(level).ToLocalChecked(),
-                  Nan::New(issue.description.c_str()).ToLocalChecked());
-    ret->Set(ret->Length(), js_issue);
+    js_issue
+        ->Set(context, Nan::New(level).ToLocalChecked(),
+              Nan::New(issue.description.c_str()).ToLocalChecked())
+        .Check();
+    ret->Set(context, ret->Length(), js_issue).Check();
   }
 error:
   if (err_msg != nullptr) {
     auto js_issue = Nan::New<Object>();
-    js_issue->Set(Nan::New("ERROR").ToLocalChecked(),
-                  Nan::New(err_msg).ToLocalChecked());
-    ret->Set(ret->Length(), js_issue);
+    js_issue
+        ->Set(context, Nan::New("ERROR").ToLocalChecked(),
+              Nan::New(err_msg).ToLocalChecked())
+        .Check();
+    ret->Set(context, ret->Length(), js_issue).Check();
   }
 
   info.GetReturnValue().Set(ret);
 }
 
 NAN_METHOD(measurements) {
+  auto context = Nan::GetCurrentContext();
   auto config = atlas_client().GetConfig();
   auto common_tags = config->CommonTags();
   const auto& measurements = atlas_registry()->measurements();
@@ -109,20 +117,24 @@ NAN_METHOD(measurements) {
   for (const auto& m : measurements) {
     auto measurement = Nan::New<Object>();
     auto tags = Nan::New<Object>();
-    tags->Set(name, Nan::New(m.id->Name()).ToLocalChecked());
+    tags->Set(context, name, Nan::New(m.id->Name()).ToLocalChecked()).Check();
 
     const auto& t = m.id->GetTags();
     for (const auto& kv : common_tags) {
-      tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
-                Nan::New(kv.second.get()).ToLocalChecked());
+      tags->Set(context, Nan::New(kv.first.get()).ToLocalChecked(),
+                Nan::New(kv.second.get()).ToLocalChecked())
+          .Check();
     }
     for (const auto& kv : t) {
-      tags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
-                Nan::New(kv.second.get()).ToLocalChecked());
+      tags->Set(context, Nan::New(kv.first.get()).ToLocalChecked(),
+                Nan::New(kv.second.get()).ToLocalChecked())
+          .Check();
     }
-    measurement->Set(Nan::New("tags").ToLocalChecked(), tags);
-    measurement->Set(Nan::New("value").ToLocalChecked(), Nan::New(m.value));
-    ret->Set(ret->Length(), measurement);
+    measurement->Set(context, Nan::New("tags").ToLocalChecked(), tags).Check();
+    measurement
+        ->Set(context, Nan::New("value").ToLocalChecked(), Nan::New(m.value))
+        .Check();
+    ret->Set(context, ret->Length(), measurement).Check();
   }
 
   info.GetReturnValue().Set(ret);
@@ -133,60 +145,84 @@ NAN_METHOD(config) {
   const auto& endpoints = currentCfg->EndpointConfiguration();
   const auto& log = currentCfg->LogConfiguration();
   const auto& http = currentCfg->HttpConfiguration();
+  auto context = Nan::GetCurrentContext();
   auto ret = Nan::New<Object>();
-  ret->Set(Nan::New("evaluateUrl").ToLocalChecked(),
-           Nan::New(endpoints.evaluate.c_str()).ToLocalChecked());
-  ret->Set(Nan::New("subscriptionsUrl").ToLocalChecked(),
-           Nan::New(endpoints.subscriptions.c_str()).ToLocalChecked());
-  ret->Set(Nan::New("publishUrl").ToLocalChecked(),
-           Nan::New(endpoints.publish.c_str()).ToLocalChecked());
-  ret->Set(Nan::New("subscriptionsRefreshMillis").ToLocalChecked(),
-           Nan::New(static_cast<double>(currentCfg->SubRefreshMillis())));
-  ret->Set(Nan::New("batchSize").ToLocalChecked(), Nan::New(http.batch_size));
-  ret->Set(Nan::New("connectTimeout").ToLocalChecked(),
-           Nan::New(http.connect_timeout));
-  ret->Set(Nan::New("readTimeout").ToLocalChecked(),
-           Nan::New(http.read_timeout));
-  ret->Set(Nan::New("dumpMetrics").ToLocalChecked(),
-           Nan::New(log.dump_metrics));
-  ret->Set(Nan::New("dumpSubscriptions").ToLocalChecked(),
-           Nan::New(log.dump_subscriptions));
-  ret->Set(Nan::New("publishEnabled").ToLocalChecked(),
-           Nan::New(currentCfg->IsMainEnabled()));
+  ret->Set(context, Nan::New("evaluateUrl").ToLocalChecked(),
+           Nan::New(endpoints.evaluate.c_str()).ToLocalChecked())
+      .Check();
+  ret->Set(context, Nan::New("subscriptionsUrl").ToLocalChecked(),
+           Nan::New(endpoints.subscriptions.c_str()).ToLocalChecked())
+      .Check();
+  ret->Set(context, Nan::New("publishUrl").ToLocalChecked(),
+           Nan::New(endpoints.publish.c_str()).ToLocalChecked())
+      .Check();
+  ret->Set(context, Nan::New("subscriptionsRefreshMillis").ToLocalChecked(),
+           Nan::New(static_cast<double>(currentCfg->SubRefreshMillis())))
+      .Check();
+  ret->Set(context, Nan::New("batchSize").ToLocalChecked(),
+           Nan::New(http.batch_size))
+      .Check();
+  ret->Set(context, Nan::New("connectTimeout").ToLocalChecked(),
+           Nan::New(http.connect_timeout))
+      .Check();
+  ret->Set(context, Nan::New("readTimeout").ToLocalChecked(),
+           Nan::New(http.read_timeout))
+      .Check();
+  ret->Set(context, Nan::New("dumpMetrics").ToLocalChecked(),
+           Nan::New(log.dump_metrics))
+      .Check();
+  ret->Set(context, Nan::New("dumpSubscriptions").ToLocalChecked(),
+           Nan::New(log.dump_subscriptions))
+      .Check();
+  ret->Set(context, Nan::New("publishEnabled").ToLocalChecked(),
+           Nan::New(currentCfg->IsMainEnabled()))
+      .Check();
 
   auto pubCfg = Nan::New<v8::Array>();
   for (const auto& expr : currentCfg->PublishConfig()) {
-    pubCfg->Set(pubCfg->Length(), Nan::New(expr.c_str()).ToLocalChecked());
+    pubCfg
+        ->Set(context, pubCfg->Length(),
+              Nan::New(expr.c_str()).ToLocalChecked())
+        .Check();
   }
-  ret->Set(Nan::New("publishConfig").ToLocalChecked(), pubCfg);
+  ret->Set(context, Nan::New("publishConfig").ToLocalChecked(), pubCfg).Check();
   auto commonTags = Nan::New<Object>();
   for (const auto& kv : currentCfg->CommonTags()) {
-    commonTags->Set(Nan::New(kv.first.get()).ToLocalChecked(),
-                    Nan::New(kv.second.get()).ToLocalChecked());
+    commonTags
+        ->Set(context, Nan::New(kv.first.get()).ToLocalChecked(),
+              Nan::New(kv.second.get()).ToLocalChecked())
+        .Check();
   }
-  ret->Set(Nan::New("commonTags").ToLocalChecked(), commonTags);
-  ret->Set(Nan::New("loggingDirectory").ToLocalChecked(),
-           Nan::New(currentCfg->LoggingDirectory().c_str()).ToLocalChecked());
+  ret->Set(context, Nan::New("commonTags").ToLocalChecked(), commonTags)
+      .Check();
+  ret->Set(context, Nan::New("loggingDirectory").ToLocalChecked(),
+           Nan::New(currentCfg->LoggingDirectory().c_str()).ToLocalChecked())
+      .Check();
 
   info.GetReturnValue().Set(ret);
 }
 
 static Measurement getMeasurement(v8::Isolate* isolate, Local<v8::Value> v) {
   std::string err_msg;
-  auto o = v->ToObject();
+  auto context = Nan::GetCurrentContext();
+  auto o = v->ToObject(context).ToLocalChecked();
   auto nameVal =
       Nan::Get(o, Nan::New("name").ToLocalChecked()).ToLocalChecked();
   Nan::Utf8String utf8(nameVal);
   std::string name(*utf8);
-  auto timestamp = Nan::Get(o, Nan::New("timestamp").ToLocalChecked())
-                       .ToLocalChecked()
-                       ->IntegerValue();
-  auto value = Nan::Get(o, Nan::New("value").ToLocalChecked())
-                   .ToLocalChecked()
-                   ->NumberValue();
+  auto timestamp =
+      Nan::To<int32_t>(
+          Nan::Get(o, Nan::New("timestamp").ToLocalChecked()).ToLocalChecked())
+          .FromJust();
+  auto value =
+      Nan::To<double>(
+          Nan::Get(o, Nan::New("value").ToLocalChecked()).ToLocalChecked())
+          .FromJust();
+
   auto tagsObj = Nan::Get(o, Nan::New("tags").ToLocalChecked())
                      .ToLocalChecked()
-                     ->ToObject();
+                     ->ToObject(context)
+                     .ToLocalChecked();
   Tags tags;
   tagsFromObject(isolate, tagsObj, &tags, &err_msg);
 
@@ -197,9 +233,11 @@ static Measurement getMeasurement(v8::Isolate* isolate, Local<v8::Value> v) {
 NAN_METHOD(push) {
   if (info.Length() == 1 && info[0]->IsArray()) {
     auto measurements = info[0].As<v8::Array>();
+    auto context = Nan::GetCurrentContext();
     Measurements ms;
     for (uint32_t i = 0; i < measurements->Length(); ++i) {
-      ms.push_back(getMeasurement(info.GetIsolate(), measurements->Get(i)));
+      ms.push_back(getMeasurement(
+          info.GetIsolate(), measurements->Get(context, i).ToLocalChecked()));
     }
     atlas_client().Push(ms);
   } else {
@@ -230,8 +268,7 @@ static void CreateConstructor(const Nan::FunctionCallbackInfo<v8::Value>& info,
   }
 
   auto cons = Nan::New<Function>(constructor);
-  auto isolate = info.GetIsolate();
-  auto context = isolate->GetCurrentContext();
+  auto context = Nan::GetCurrentContext();
   Nan::TryCatch tc;
   auto newInstance = cons->NewInstance(context, argc, argv);
   if (newInstance.IsEmpty()) {
@@ -320,8 +357,10 @@ NAN_MODULE_INIT(JsCounter::Init) {
   Nan::SetPrototypeMethod(tpl, "add", Add);
   Nan::SetPrototypeMethod(tpl, "increment", Increment);
 
-  constructor.Reset(tpl->GetFunction());
-  Nan::Set(target, Nan::New("JsCounter").ToLocalChecked(), tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
+  Nan::Set(target, Nan::New("JsCounter").ToLocalChecked(),
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsCounter::New) {
@@ -336,13 +375,19 @@ NAN_METHOD(JsCounter::New) {
 }
 
 NAN_METHOD(JsCounter::Increment) {
-  long value = (long)(info[0]->IsUndefined() ? 1 : info[0]->NumberValue());
+  long value =
+      (long)(info[0]->IsUndefined()
+                 ? 1
+                 : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   JsCounter* ctr = Nan::ObjectWrap::Unwrap<JsCounter>(info.This());
   ctr->counter_->Add(value);
 }
 
 NAN_METHOD(JsCounter::Add) {
-  long value = (long)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  long value =
+      (long)(info[0]->IsUndefined()
+                 ? 0
+                 : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
 
   JsCounter* ctr = Nan::ObjectWrap::Unwrap<JsCounter>(info.This());
   ctr->counter_->Add(value);
@@ -367,8 +412,10 @@ NAN_MODULE_INIT(JsDCounter::Init) {
   Nan::SetPrototypeMethod(tpl, "add", Add);
   Nan::SetPrototypeMethod(tpl, "increment", Increment);
 
-  constructor.Reset(tpl->GetFunction());
-  Nan::Set(target, Nan::New("JsDCounter").ToLocalChecked(), tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
+  Nan::Set(target, Nan::New("JsDCounter").ToLocalChecked(),
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsDCounter::New) {
@@ -383,13 +430,19 @@ NAN_METHOD(JsDCounter::New) {
 }
 
 NAN_METHOD(JsDCounter::Increment) {
-  double value = info[0]->IsUndefined() ? 1.0 : info[0]->NumberValue();
+  double value =
+      info[0]->IsUndefined()
+          ? 1.0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust();
   JsDCounter* ctr = Nan::ObjectWrap::Unwrap<JsDCounter>(info.This());
   ctr->counter_->Add(value);
 }
 
 NAN_METHOD(JsDCounter::Add) {
-  double value = info[0]->IsUndefined() ? 0.0 : info[0]->NumberValue();
+  double value =
+      info[0]->IsUndefined()
+          ? 0.0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust();
 
   JsDCounter* ctr = Nan::ObjectWrap::Unwrap<JsDCounter>(info.This());
   ctr->counter_->Add(value);
@@ -416,9 +469,10 @@ NAN_MODULE_INIT(JsIntervalCounter::Init) {
   Nan::SetPrototypeMethod(tpl, "add", Add);
   Nan::SetPrototypeMethod(tpl, "increment", Increment);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsIntervalCounter").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsIntervalCounter::New) {
@@ -434,14 +488,20 @@ NAN_METHOD(JsIntervalCounter::New) {
 }
 
 NAN_METHOD(JsIntervalCounter::Increment) {
-  long value = (long)(info[0]->IsUndefined() ? 1 : info[0]->NumberValue());
+  long value =
+      (long)(info[0]->IsUndefined()
+                 ? 1
+                 : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   JsIntervalCounter* ctr =
       Nan::ObjectWrap::Unwrap<JsIntervalCounter>(info.This());
   ctr->counter_->Add(value);
 }
 
 NAN_METHOD(JsIntervalCounter::Add) {
-  long value = (long)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  long value =
+      (long)(info[0]->IsUndefined()
+                 ? 0
+                 : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
 
   JsIntervalCounter* ctr =
       Nan::ObjectWrap::Unwrap<JsIntervalCounter>(info.This());
@@ -480,8 +540,10 @@ NAN_MODULE_INIT(JsTimer::Init) {
   Nan::SetPrototypeMethod(tpl, "timeThis", TimeThis);
   Nan::SetPrototypeMethod(tpl, "totalTime", TotalTime);
 
-  constructor.Reset(tpl->GetFunction());
-  Nan::Set(target, Nan::New("JsTimer").ToLocalChecked(), tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
+  Nan::Set(target, Nan::New("JsTimer").ToLocalChecked(),
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsTimer::New) {
@@ -499,20 +561,27 @@ constexpr long NANOS = 1000L * 1000L * 1000L;
 NAN_METHOD(JsTimer::Record) {
   JsTimer* timer = Nan::ObjectWrap::Unwrap<JsTimer>(info.This());
 
+  auto context = Nan::GetCurrentContext();
   int64_t seconds = 0, nanos = 0;
   if (info.Length() == 1 && info[0]->IsArray()) {
     auto hrtime = info[0].As<v8::Array>();
     if (hrtime->Length() == 2) {
-      seconds = hrtime->Get(0)->NumberValue();
-      nanos = hrtime->Get(1)->NumberValue();
+      seconds =
+          Nan::To<int64_t>(hrtime->Get(context, 0).ToLocalChecked()).FromJust();
+      nanos =
+          Nan::To<int64_t>(hrtime->Get(context, 1).ToLocalChecked()).FromJust();
     } else {
       Nan::ThrowError(
           "Expecting an array of two elements: seconds, nanos. See "
           "process.hrtime()");
     }
   } else {
-    seconds = (long)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
-    nanos = (long)(info[1]->IsUndefined() ? 0 : info[1]->NumberValue());
+    seconds = (long)(info[0]->IsUndefined()
+                         ? 0
+                         : info[0]->NumberValue(context).FromJust());
+    nanos = (long)(info[1]->IsUndefined()
+                       ? 0
+                       : info[1]->NumberValue(context).FromJust());
   }
   timer->timer_->Record(std::chrono::nanoseconds(seconds * NANOS + nanos));
 }
@@ -523,15 +592,14 @@ NAN_METHOD(JsTimer::TimeThis) {
   if (info.Length() != 1 || !info[0]->IsFunction()) {
     Nan::ThrowError("Expecting a function as the argument to timeThis.");
   } else {
-    auto isolate = info.GetIsolate();
-    auto context = isolate->GetCurrentContext();
-    auto global = context->Global();
-    auto function = v8::Handle<Function>::Cast(info[0]);
+    auto context = Nan::GetCurrentContext();
+    auto function = Nan::To<v8::Function>(info[0]).ToLocalChecked();
 
     const auto& clock = atlas_registry()->clock();
     auto start = clock.MonotonicTime();
 
-    auto result = function->Call(global, 0, nullptr);
+    auto result =
+        Nan::Call(function, context->Global(), 0, nullptr).ToLocalChecked();
 
     auto elapsed_nanos = clock.MonotonicTime() - start;
     timer->timer_->Record(std::chrono::nanoseconds(elapsed_nanos));
@@ -570,9 +638,10 @@ NAN_MODULE_INIT(JsLongTaskTimer::Init) {
   Nan::SetPrototypeMethod(tpl, "duration", Duration);
   Nan::SetPrototypeMethod(tpl, "activeTasks", ActiveTasks);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsLongTaskTimer").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsLongTaskTimer::New) {
@@ -595,7 +664,10 @@ NAN_METHOD(JsLongTaskTimer::Start) {
 
 NAN_METHOD(JsLongTaskTimer::Stop) {
   auto wrapper = Nan::ObjectWrap::Unwrap<JsLongTaskTimer>(info.This());
-  auto id = (int64_t)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  auto id = (int64_t)(
+      info[0]->IsUndefined()
+          ? 0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   auto duration = (double)wrapper->timer_->Stop(id);
   info.GetReturnValue().Set(duration);
 }
@@ -605,7 +677,10 @@ NAN_METHOD(JsLongTaskTimer::Duration) {
   auto& tmr = wrapper->timer_;
   double duration;
   if (info.Length() > 0) {
-    auto id = (int64_t)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+    auto id = (int64_t)(
+        info[0]->IsUndefined()
+            ? 0
+            : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
     duration = (double)tmr->Duration(id);
   } else {
     duration = (double)tmr->Duration();
@@ -631,8 +706,10 @@ NAN_MODULE_INIT(JsGauge::Init) {
   Nan::SetPrototypeMethod(tpl, "value", Value);
   Nan::SetPrototypeMethod(tpl, "update", Update);
 
-  constructor.Reset(tpl->GetFunction());
-  Nan::Set(target, Nan::New("JsGauge").ToLocalChecked(), tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
+  Nan::Set(target, Nan::New("JsGauge").ToLocalChecked(),
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsGauge::New) {
@@ -650,7 +727,9 @@ NAN_METHOD(JsGauge::New) {
 
 NAN_METHOD(JsGauge::Update) {
   JsGauge* g = Nan::ObjectWrap::Unwrap<JsGauge>(info.This());
-  auto value = info[0]->IsUndefined() ? 0 : info[0]->NumberValue();
+  auto value = info[0]->IsUndefined()
+                   ? 0
+                   : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust();
   g->gauge_->Update(value);
 }
 
@@ -674,8 +753,10 @@ NAN_MODULE_INIT(JsMaxGauge::Init) {
   Nan::SetPrototypeMethod(tpl, "value", Value);
   Nan::SetPrototypeMethod(tpl, "update", Update);
 
-  constructor.Reset(tpl->GetFunction());
-  Nan::Set(target, Nan::New("JsMaxGauge").ToLocalChecked(), tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
+  Nan::Set(target, Nan::New("JsMaxGauge").ToLocalChecked(),
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsMaxGauge::New) {
@@ -698,7 +779,9 @@ NAN_METHOD(JsMaxGauge::Value) {
 
 NAN_METHOD(JsMaxGauge::Update) {
   JsMaxGauge* g = Nan::ObjectWrap::Unwrap<JsMaxGauge>(info.This());
-  auto value = info[0]->IsUndefined() ? 0.0 : info[0]->NumberValue();
+  auto value = info[0]->IsUndefined()
+                   ? 0.0
+                   : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust();
   g->max_gauge_->Update(value);
 }
 
@@ -718,9 +801,10 @@ NAN_MODULE_INIT(JsDistSummary::Init) {
   Nan::SetPrototypeMethod(tpl, "count", Count);
   Nan::SetPrototypeMethod(tpl, "record", Record);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsDistSummary").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsDistSummary::New) {
@@ -749,8 +833,10 @@ NAN_METHOD(JsDistSummary::TotalAmount) {
 
 NAN_METHOD(JsDistSummary::Record) {
   JsDistSummary* g = Nan::ObjectWrap::Unwrap<JsDistSummary>(info.This());
-  auto value =
-      static_cast<int64_t>(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  auto value = static_cast<int64_t>(
+      info[0]->IsUndefined()
+          ? 0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   g->dist_summary_->Record(value);
 }
 
@@ -766,7 +852,9 @@ static int64_t GetNumKey(Local<v8::Context> context, Local<Object> object,
     return -1;
   }
 
-  auto val = maybeResult.ToLocalChecked()->NumberValue();
+  auto val = maybeResult.ToLocalChecked()
+                 ->NumberValue(Nan::GetCurrentContext())
+                 .FromJust();
   return static_cast<int64_t>(val);
 }
 
@@ -778,9 +866,8 @@ static std::string GetStrKey(Local<v8::Context> context, Local<Object> object,
     return kEmptyString;
   }
 
-  auto val = maybeResult.ToLocalChecked();
-  v8::String::Utf8Value result{val};
-  return std::string{*result};
+  Nan::Utf8String val{maybeResult.ToLocalChecked()};
+  return std::string{*val};
 }
 
 static std::chrono::nanoseconds GetDuration(int64_t value,
@@ -894,9 +981,10 @@ NAN_MODULE_INIT(JsBucketCounter::Init) {
   // Prototype
   Nan::SetPrototypeMethod(tpl, "record", Record);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsBucketCounter").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsBucketCounter::New) {
@@ -910,8 +998,9 @@ NAN_METHOD(JsBucketCounter::New) {
 
   if (info.IsConstructCall()) {
     // Invoked as constructor: `new JsBucketCounter(...)`
-    const auto& bucket_function =
-        bucketFuncFromObject(info.GetIsolate(), info[argc - 1]->ToObject());
+    auto context = Nan::GetCurrentContext();
+    const auto& bucket_function = bucketFuncFromObject(
+        info.GetIsolate(), info[argc - 1]->ToObject(context).ToLocalChecked());
     auto obj = new JsBucketCounter(idFromValue(info, argc - 1),
                                    bucket_function.FromJust());
     obj->Wrap(info.This());
@@ -923,7 +1012,10 @@ NAN_METHOD(JsBucketCounter::New) {
 
 NAN_METHOD(JsBucketCounter::Record) {
   auto g = Nan::ObjectWrap::Unwrap<JsBucketCounter>(info.This());
-  auto value = (uint64_t)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  auto value = (uint64_t)(
+      info[0]->IsUndefined()
+          ? 0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   g->bucket_counter_->Record(value);
 }
 
@@ -942,9 +1034,10 @@ NAN_MODULE_INIT(JsBucketDistSummary::Init) {
   // Prototype
   Nan::SetPrototypeMethod(tpl, "record", Record);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsBucketDistSummary").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsBucketDistSummary::New) {
@@ -958,8 +1051,9 @@ NAN_METHOD(JsBucketDistSummary::New) {
 
   if (info.IsConstructCall()) {
     // Invoked as constructor: `new JsBucketDistSummary(...)`
-    const auto& bucket_function =
-        bucketFuncFromObject(info.GetIsolate(), info[argc - 1]->ToObject());
+    auto context = Nan::GetCurrentContext();
+    const auto& bucket_function = bucketFuncFromObject(
+        info.GetIsolate(), info[argc - 1]->ToObject(context).ToLocalChecked());
     auto obj = new JsBucketDistSummary(idFromValue(info, argc - 1),
                                        bucket_function.FromJust());
     obj->Wrap(info.This());
@@ -971,7 +1065,10 @@ NAN_METHOD(JsBucketDistSummary::New) {
 
 NAN_METHOD(JsBucketDistSummary::Record) {
   auto g = Nan::ObjectWrap::Unwrap<JsBucketDistSummary>(info.This());
-  auto value = (uint64_t)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  auto value = (uint64_t)(
+      info[0]->IsUndefined()
+          ? 0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   g->bucket_dist_summary_->Record(value);
 }
 
@@ -992,9 +1089,10 @@ NAN_MODULE_INIT(JsBucketTimer::Init) {
   // Prototype
   Nan::SetPrototypeMethod(tpl, "record", Record);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsBucketTimer").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsBucketTimer::New) {
@@ -1008,8 +1106,9 @@ NAN_METHOD(JsBucketTimer::New) {
 
   if (info.IsConstructCall()) {
     // Invoked as constructor: `new JsBucketTimer(...)`
-    const auto& bucket_function =
-        bucketFuncFromObject(info.GetIsolate(), info[argc - 1]->ToObject());
+    auto context = Nan::GetCurrentContext();
+    const auto& bucket_function = bucketFuncFromObject(
+        info.GetIsolate(), info[argc - 1]->ToObject(context).ToLocalChecked());
     auto obj = new JsBucketTimer(idFromValue(info, argc - 1),
                                  bucket_function.FromJust());
     obj->Wrap(info.This());
@@ -1021,20 +1120,28 @@ NAN_METHOD(JsBucketTimer::New) {
 
 NAN_METHOD(JsBucketTimer::Record) {
   auto g = Nan::ObjectWrap::Unwrap<JsBucketTimer>(info.This());
+  auto context = Nan::GetCurrentContext();
+
   int64_t seconds = 0, nanos = 0;
   if (info.Length() == 1 && info[0]->IsArray()) {
     auto hrtime = info[0].As<v8::Array>();
     if (hrtime->Length() == 2) {
-      seconds = hrtime->Get(0)->NumberValue();
-      nanos = hrtime->Get(1)->NumberValue();
+      seconds =
+          Nan::To<int64_t>(hrtime->Get(context, 0).ToLocalChecked()).FromJust();
+      nanos =
+          Nan::To<int64_t>(hrtime->Get(context, 1).ToLocalChecked()).FromJust();
     } else {
       Nan::ThrowError(
           "Expecting an array of two elements: seconds, nanos. See "
           "process.hrtime()");
     }
   } else {
-    seconds = (long)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
-    nanos = (long)(info[1]->IsUndefined() ? 0 : info[1]->NumberValue());
+    seconds = (long)(info[0]->IsUndefined()
+                         ? 0
+                         : info[0]->NumberValue(context).FromJust());
+    nanos = (long)(info[1]->IsUndefined()
+                       ? 0
+                       : info[1]->NumberValue(context).FromJust());
   }
   g->bucket_timer_->Record(std::chrono::nanoseconds(seconds * NANOS + nanos));
 }
@@ -1057,9 +1164,10 @@ NAN_MODULE_INIT(JsPercentileTimer::Init) {
   Nan::SetPrototypeMethod(tpl, "count", Count);
   Nan::SetPrototypeMethod(tpl, "totalTime", TotalTime);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsPercentileTimer").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsPercentileTimer::New) {
@@ -1075,20 +1183,27 @@ NAN_METHOD(JsPercentileTimer::New) {
 
 NAN_METHOD(JsPercentileTimer::Record) {
   auto t = Nan::ObjectWrap::Unwrap<JsPercentileTimer>(info.This());
+  auto context = Nan::GetCurrentContext();
   int64_t seconds = 0, nanos = 0;
   if (info.Length() == 1 && info[0]->IsArray()) {
     auto hrtime = info[0].As<v8::Array>();
     if (hrtime->Length() == 2) {
-      seconds = hrtime->Get(0)->NumberValue();
-      nanos = hrtime->Get(1)->NumberValue();
+      seconds =
+          Nan::To<int64_t>(hrtime->Get(context, 0).ToLocalChecked()).FromJust();
+      nanos =
+          Nan::To<int64_t>(hrtime->Get(context, 1).ToLocalChecked()).FromJust();
     } else {
       Nan::ThrowError(
           "Expecting an array of two elements: seconds, nanos. See "
           "process.hrtime()");
     }
   } else if (info.Length() == 2) {
-    seconds = (long)(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
-    nanos = (long)(info[1]->IsUndefined() ? 0 : info[1]->NumberValue());
+    seconds = (long)(info[0]->IsUndefined()
+                         ? 0
+                         : info[0]->NumberValue(context).FromJust());
+    nanos = (long)(info[1]->IsUndefined()
+                       ? 0
+                       : info[1]->NumberValue(context).FromJust());
   } else {
     Nan::ThrowError("Expecting two numbers: seconds and nanoseconds");
   }
@@ -1115,7 +1230,7 @@ NAN_METHOD(JsPercentileTimer::Percentile) {
         "Need the percentile to compute as a number from 0.0 to 100.0");
     return;
   }
-  auto n = info[0]->NumberValue();
+  auto n = info[0]->NumberValue(Nan::GetCurrentContext()).FromJust();
   auto value = t->perc_timer_->Percentile(n);
   info.GetReturnValue().Set(value);
 }
@@ -1138,9 +1253,10 @@ NAN_MODULE_INIT(JsPercentileDistSummary::Init) {
   Nan::SetPrototypeMethod(tpl, "count", Count);
   Nan::SetPrototypeMethod(tpl, "totalAmount", TotalAmount);
 
-  constructor.Reset(tpl->GetFunction());
+  auto context = Nan::GetCurrentContext();
+  constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
   Nan::Set(target, Nan::New("JsPercentileDistSummary").ToLocalChecked(),
-           tpl->GetFunction());
+           tpl->GetFunction(context).ToLocalChecked());
 }
 
 NAN_METHOD(JsPercentileDistSummary::New) {
@@ -1156,8 +1272,10 @@ NAN_METHOD(JsPercentileDistSummary::New) {
 
 NAN_METHOD(JsPercentileDistSummary::Record) {
   auto t = Nan::ObjectWrap::Unwrap<JsPercentileDistSummary>(info.This());
-  auto value =
-      static_cast<int64_t>(info[0]->IsUndefined() ? 0 : info[0]->NumberValue());
+  auto value = static_cast<int64_t>(
+      info[0]->IsUndefined()
+          ? 0
+          : info[0]->NumberValue(Nan::GetCurrentContext()).FromJust());
   t->perc_dist_summary_->Record(value);
 }
 
@@ -1180,7 +1298,7 @@ NAN_METHOD(JsPercentileDistSummary::Percentile) {
         "Need the percentile to compute as a number from 0.0 to 100.0");
     return;
   }
-  auto n = info[0]->NumberValue();
+  auto n = info[0]->NumberValue(Nan::GetCurrentContext()).FromJust();
   auto value = d->perc_dist_summary_->Percentile(n);
   info.GetReturnValue().Set(value);
 }

@@ -40,9 +40,9 @@
     "host": "https://atlasclient.us-east-1.iepprod.netflix.net.s3-us-east-1.amazonaws.com"
   },
   "dependencies": {
-    "bindings": "^1.2.1",
-    "nan": "^2.6.2",
-    "node-pre-gyp": "0.6.x",
-    "pkginfo": "^0.4.0"
+    "bindings": "^1.5.0",
+    "nan": "^2.14.0",
+    "node-pre-gyp": "^0.6.39",
+    "pkginfo": "^0.4.1"
   }
 }

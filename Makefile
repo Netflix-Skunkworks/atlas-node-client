@@ -58,7 +58,7 @@ ALL_FILES		:= $(shell find $(ROOT) \
 #
 
 .PHONY: all
-all: clean node_modules lint codestyle post-install test
+all: node_modules lint codestyle post-install test
 
 SYSTEM := $(shell uname -s)
 CUR_PATH := $(shell otool -L build/Release/atlas.node | awk '/libatlasclient/{print $$1}')
