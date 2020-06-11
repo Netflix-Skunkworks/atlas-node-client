@@ -13,7 +13,7 @@ if [ $# = 0 ] ; then
 fi
 NATIVE_CLIENT_VERSION=$1
 
-#rm -rf nc
+rm -rf nc
 mkdir -p nc
 cd nc
 git init 
