@@ -13,14 +13,14 @@ if [ $# = 0 ] ; then
 fi
 NATIVE_CLIENT_VERSION=$1
 
-rm -rf nc
-mkdir nc
+#rm -rf nc
+mkdir -p nc
 cd nc
 git init 
 git remote add origin https://github.com/Netflix-Skunkworks/atlas-native-client.git
 git fetch origin $NATIVE_CLIENT_VERSION
 git reset --hard FETCH_HEAD
-mkdir build root
+mkdir -p build root
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=/ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 make -j8 
