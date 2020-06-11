@@ -68,10 +68,10 @@ describe('atlas extension', () => {
       for (let i = 0; i < 1000000; ++i) {
         j++;
       }
-      return 42;
+      return j;
     });
 
-    assert.equal(value, 42);
+    assert.equal(value, 1000000);
     let timer = atlas.timer('time.this.example');
     assert.equal(timer.count(), 1);
     assert(timer.totalTime() > 0, 'Some time was recorded');
@@ -152,6 +152,7 @@ describe('atlas extension', () => {
     for (let i = 0; i < 1000000; ++i) {
       j++;
     }
+    assert(j > 0);
     assert.equal(t.activeTasks(), 1);
     let duration = t.stop(id);
     assert(duration > 0);

@@ -13,6 +13,7 @@ exec(cmd, (error, stdout, stderr) => {
   if (stderr) {
     process.stderr.write('\x1b[31m' + stderr + '\x1b[0m');
   }
+
   if (stdout) {
     process.stdout.write(stdout);
   }
