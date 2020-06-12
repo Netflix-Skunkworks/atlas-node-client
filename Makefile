@@ -59,12 +59,11 @@ ALL_FILES		:= $(shell find $(ROOT) \
 all: clean node_modules lint codestyle post-install test
 
 SYSTEM := $(shell uname -s)
-CUR_PATH := $(shell otool -L build/Release/atlas.node | awk '/libatlasclient/{print $$1}')
 .PHONY: post-install
 post-install:
 ifeq ($(SYSTEM), Darwin)
-	@echo Current path: ${CUR_PATH}
-	install_name_tool -change ${CUR_PATH} @loader_path/libatlasclient.dylib build/Release/atlas.node
+	@echo Current path: $(shell otool -L build/Release/atlas.node | awk '/libatlasclient/{print $$1}')
+	install_name_tool -change $(shell otool -L build/Release/atlas.node | awk '/libatlasclient/{print $$1}') @loader_path/libatlasclient.dylib build/Release/atlas.node
 endif
 	rm -rf build/Release/obj.target build/Release/.deps
 
