@@ -223,7 +223,7 @@ NAN_METHOD(start) {
       auto input_log_dirs = maybeLogDirs.ToLocalChecked().As<v8::Array>();
       const auto n = input_log_dirs->Length();
       for (size_t i = 0; i < n; ++i) {
-        auto dir = input_log_dirs->Get(i);
+        auto dir = input_log_dirs->Get(context, i).ToLocalChecked();
         const auto& path = std::string(*Nan::Utf8String(dir));
         log_dirs.push_back(path);
       }
