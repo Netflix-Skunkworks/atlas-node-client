@@ -22,10 +22,8 @@ MOCHA       := $(NODE_BIN)/mocha
 _MOCHA      := $(NODE_BIN)/_mocha
 ISTANBUL    := $(NODE_BIN)/istanbul
 COVERALLS   := $(NODE_BIN)/coveralls
-NSP         := $(NODE_BIN)/nsp
 NPM		    := npm
 GIT         := git
-NSP_BADGE   := $(TOOLS)/nspBadge.js
 COVERAGE_BADGE := $(TOOLS)/coverageBadge.js
 
 
@@ -105,7 +103,7 @@ nsp: node_modules $(ALL_FILES)
 
 
 .PHONY: prepush
-prepush: node_modules lint codestyle coverage nsp 
+prepush: node_modules lint codestyle coverage 
 
 .PHONY: package
 package: node_modules test lint codestyle
@@ -118,7 +116,7 @@ publish: package
 
 .PHONY: test
 test: node_modules $(ALL_FILES)
-	@$(MOCHA) -R spec $(TEST_ENTRY) --full-trace
+	@$(MOCHA) -R spec $(TEST_ENTRY) --full-trace --exit
 
 
 .PHONY: coverage

@@ -66,8 +66,8 @@ bool tagsFromObject(v8::Isolate* isolate, const v8::Local<v8::Object>& object,
     auto props = maybe_props.ToLocalChecked();
     auto n = props->Length();
     for (uint32_t i = 0; i < n; ++i) {
-      const auto& key = props->Get(i);
-      const auto& value = object->Get(key);
+      const auto& key = props->Get(context, i).ToLocalChecked();
+      const auto& value = object->Get(context, key).ToLocalChecked();
       const auto& k = std::string(*Nan::Utf8String(key));
       const auto& v = std::string(*Nan::Utf8String(value));
       if (k.empty()) {
@@ -109,7 +109,9 @@ IdPtr idFromValue(const Nan::FunctionCallbackInfo<v8::Value>& info, int argc) {
     // read the object which should just have string keys and string values
     const auto& maybe_o = info[1];
     if (maybe_o->IsObject()) {
-      if (!tagsFromObject(info.GetIsolate(), maybe_o->ToObject(), &tags,
+      auto context = Nan::GetCurrentContext();
+      if (!tagsFromObject(info.GetIsolate(),
+                          maybe_o->ToObject(context).ToLocalChecked(), &tags,
                           &err_msg)) {
         err_msg += " for metric name '" + name + "'";
         goto error;
