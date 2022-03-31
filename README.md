@@ -1,6 +1,10 @@
-# Atlas Client for nodejs
+# Atlas Client for Node.js
 
-Module for generating metrics and sending them to atlas.
+> :warning: This library is deprecated. Javascript projects should migrate to
+[spectator-js](https://github.com/Netflix/spectator-js) for publishing Atlas
+metrics.
+
+Module for generating metrics and sending them to Atlas.
 
 ## Getting Started
 
@@ -9,7 +13,6 @@ Install the module with: `npm install atlasclient`
 ## Usage
 
 ```js
-
 const atlas = require("atlasclient");
 atlas.start(); // only the main application, not libraries instrumenting code
 
