@@ -15,7 +15,8 @@ describe('metrics', () => {
           assert(
             time[1] + threshold > ms * 1e6 &&
             time[1] - threshold < ms * 1e6,
-            'nanosecond should be within tolerable threshold');
+            'nanosecond should be within tolerable threshold (time=' +
+            time[1] + ')');
           done();
         }
       }
