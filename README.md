@@ -1,5 +1,7 @@
 # Atlas Client for Node.js
 
+[![Snapshot](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/snapshot.yml/badge.svg)](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/snapshot.yml)
+
 > :warning: This library is deprecated. Javascript projects should migrate to
 [spectator-js](https://github.com/Netflix/spectator-js) for publishing Atlas
 metrics.
