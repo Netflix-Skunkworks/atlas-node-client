@@ -8,6 +8,14 @@ metrics.
 
 Module for generating metrics and sending them to Atlas.
 
+## Local Development (MacOS)
+
+```
+brew install node@14
+export PATH="/usr/local/opt/node@14/bin:$PATH"
+make
+```
+
 ## Getting Started
 
 Install the module with: `npm install atlasclient`
