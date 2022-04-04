@@ -10,6 +10,7 @@ jobs:
     if: ${{ github.repository == 'Netflix-Skunkworks/atlas-node-client' }}
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         node-version: [10, 12, 14]
     steps:
