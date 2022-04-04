@@ -1,6 +1,6 @@
 # Atlas Client for Node.js
 
-[![Snapshot](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/snapshot.yml/badge.svg)](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/snapshot.yml)
+[![Snapshot](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/snapshot.yml/badge.svg)](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/snapshot.yml) [![Release](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/release.yml/badge.svg)](https://github.com/Netflix-Skunkworks/atlas-node-client/actions/workflows/release.yml)
 
 > :warning: This library is deprecated. Javascript projects should migrate to
 [spectator-js](https://github.com/Netflix/spectator-js) for publishing Atlas
